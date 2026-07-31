@@ -3,7 +3,7 @@ import { Renderer, Stave, StaveNote, Voice, Formatter, Accidental, StaveConnecto
 import { useScoreStore } from '../../store/scoreStore.js'
 import {
   computeLayout,
-  PAGE_W, PAGE_H, MAR_L, MAR_R, MAR_T,
+  PAGE_W, PAGE_H, MAR_L, MAR_T,
   STAVE_H, STAFF_GAP, SYS_ABOVE,
   systemHeight,
 } from '../../notation/layout.js'
@@ -77,6 +77,8 @@ export default function ScoreCanvas() {
     [measures, staves, meta]
   )
 
+  const sysH = useMemo(() => systemHeight(staves.length), [staves.length])
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -85,8 +87,7 @@ export default function ScoreCanvas() {
     staffInfo.current     = []
     pageRefs.current      = pageRefs.current.slice(0, layout.pages.length)
 
-    const sysH   = systemHeight(staves.length)
-    const cap    = measureCapacity(meta.timeSignature)
+    const cap = measureCapacity(meta.timeSignature)
 
     layout.pages.forEach((page, pi) => {
       const container = pageRefs.current[pi]
@@ -117,12 +118,7 @@ export default function ScoreCanvas() {
         const sysX  = MAR_L
         const sysY  = MAR_T + system.yTop  // absolute SVG y of first staff's top line
 
-        // Active system highlight
         const isActiveSys = system.measures.some(ml => ml.measure.id === selection.measureId)
-        if (isActiveSys) {
-          const hi = mkRect(sysX - 4, sysY - SYS_ABOVE + 4, PAGE_W - MAR_L - MAR_R + 8, sysH - 4, 'var(--color-accent-light)', 4)
-          svg.insertBefore(hi, svg.firstChild)
-        }
 
         // Measure number label (show on first measure of every system except measure 1)
         if (system.firstMeasureNumber > 1) {
@@ -321,6 +317,22 @@ export default function ScoreCanvas() {
     <div className={styles.scoreArea}>
       {layout.pages.map((page, pi) => (
         <div key={pi} className={styles.page}>
+          {/* HTML layer: active system highlight — sits below VexFlow SVG via z-index */}
+          {page.systems.map((sys, si) => {
+            const isActive = sys.measures.some(ml => ml.measure.id === selection.measureId)
+            if (!isActive) return null
+            return (
+              <div
+                key={si}
+                className={styles.systemHighlight}
+                style={{
+                  top:    MAR_T + sys.yTop - SYS_ABOVE,
+                  height: sysH,
+                }}
+              />
+            )
+          })}
+          {/* VexFlow SVG layer — transparent background so highlight shows through */}
           <div
             ref={el => { pageRefs.current[pi] = el }}
             className={styles.pageContent}
@@ -351,10 +363,3 @@ function mkText(content, x, y, fontSize, fontWeight, anchor) {
   return t
 }
 
-function mkRect(x, y, w, h, fill, rx = 0) {
-  const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-  r.setAttribute('x', x); r.setAttribute('y', y)
-  r.setAttribute('width', w); r.setAttribute('height', h)
-  r.setAttribute('fill', fill); r.setAttribute('rx', rx)
-  return r
-}
