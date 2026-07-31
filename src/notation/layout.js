@@ -102,7 +102,7 @@ export function computeLayout(measures, staves, meta) {
 
   justified.forEach((sys) => {
     if (curPage.length > 0 && curY + sysH > CONTENT_H) {
-      pages.push(curPage)
+      pages.push({ systems: curPage })
       curPage = []
       curY = 16
     }
@@ -114,7 +114,7 @@ export function computeLayout(measures, staves, meta) {
     curY += sysH + SYS_SPACING
   })
 
-  if (curPage.length > 0 || pages.length === 0) pages.push(curPage)
+  if (curPage.length > 0 || pages.length === 0) pages.push({ systems: curPage })
 
   return { pages }
 }
