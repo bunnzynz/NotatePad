@@ -1,11 +1,18 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
 
-function snapshot(measures) {
-  return JSON.parse(JSON.stringify(measures))
+function snapshot(state) {
+  return JSON.parse(JSON.stringify({ measures: state.measures, staves: state.staves }))
 }
 
-const firstId = uuid()
+const firstStaffId = uuid()
+const firstMeasureId = uuid()
+
+function emptyMeasure(staveIds) {
+  const notesByStaff = {}
+  staveIds.forEach((id) => { notesByStaff[id] = [] })
+  return { id: uuid(), notesByStaff }
+}
 
 export const useScoreStore = create((set) => ({
   meta: {
@@ -13,57 +20,83 @@ export const useScoreStore = create((set) => ({
     tempo: 120,
     timeSignature: [4, 4],
     keySignature: 'C',
-    clef: 'treble',
   },
 
-  // What the next entered note will use
+  // Staff definitions (order = top to bottom)
+  staves: [{ id: firstStaffId, clef: 'treble', label: '' }],
+
   inputState: {
     duration: 'q',
-    accidental: null, // null | '#' | 'b' | 'n'
+    accidental: null,
     octave: 4,
     dotted: false,
   },
 
-  measures: [{ id: firstId, notes: [] }],
+  measures: [{ id: firstMeasureId, notesByStaff: { [firstStaffId]: [] } }],
 
-  // Cursor: which measure + which note is selected (null noteId = end of measure)
   selection: {
-    measureId: firstId,
+    measureId: firstMeasureId,
+    staffId: firstStaffId,
     noteId: null,
   },
 
-  history: {
-    past: [],
-    future: [],
-  },
+  history: { past: [], future: [] },
 
   // --- Meta ---
-  setMeta: (updates) =>
-    set((s) => ({ meta: { ...s.meta, ...updates } })),
+  setMeta: (updates) => set((s) => ({ meta: { ...s.meta, ...updates } })),
 
   // --- Input state ---
-  setDuration: (duration) =>
-    set((s) => ({ inputState: { ...s.inputState, duration } })),
+  setDuration:       (duration)  => set((s) => ({ inputState: { ...s.inputState, duration } })),
+  toggleAccidental:  (acc)       => set((s) => ({ inputState: { ...s.inputState, accidental: s.inputState.accidental === acc ? null : acc } })),
+  toggleDotted:      ()          => set((s) => ({ inputState: { ...s.inputState, dotted: !s.inputState.dotted } })),
+  setOctave:         (octave)    => set((s) => ({ inputState: { ...s.inputState, octave: Math.max(1, Math.min(8, octave)) } })),
 
-  toggleAccidental: (acc) =>
+  // --- Staff management ---
+  addStaff: (clef) =>
+    set((s) => {
+      const newStaff = { id: uuid(), clef, label: '' }
+      const snap = snapshot(s)
+      const newMeasures = s.measures.map((m) => ({
+        ...m,
+        notesByStaff: { ...m.notesByStaff, [newStaff.id]: [] },
+      }))
+      return {
+        staves: [...s.staves, newStaff],
+        measures: newMeasures,
+        history: { past: [...s.history.past, snap], future: [] },
+      }
+    }),
+
+  removeStaff: (staffId) =>
+    set((s) => {
+      if (s.staves.length <= 1) return s
+      const snap = snapshot(s)
+      const newStaves = s.staves.filter((st) => st.id !== staffId)
+      const newMeasures = s.measures.map((m) => {
+        const nbs = { ...m.notesByStaff }
+        delete nbs[staffId]
+        return { ...m, notesByStaff: nbs }
+      })
+      const newStaffId = newStaves[0].id
+      return {
+        staves: newStaves,
+        measures: newMeasures,
+        selection: { ...s.selection, staffId: newStaffId, noteId: null },
+        history: { past: [...s.history.past, snap], future: [] },
+      }
+    }),
+
+  setStaffClef: (staffId, clef) =>
     set((s) => ({
-      inputState: {
-        ...s.inputState,
-        accidental: s.inputState.accidental === acc ? null : acc,
-      },
+      staves: s.staves.map((st) => st.id === staffId ? { ...st, clef } : st),
     })),
 
-  toggleDotted: () =>
-    set((s) => ({ inputState: { ...s.inputState, dotted: !s.inputState.dotted } })),
-
-  setOctave: (octave) =>
-    set((s) => ({
-      inputState: { ...s.inputState, octave: Math.max(1, Math.min(8, octave)) },
-    })),
+  setActiveStaff: (staffId) =>
+    set((s) => ({ selection: { ...s.selection, staffId, noteId: null } })),
 
   // --- Selection / cursor ---
-  setSelection: (measureId, noteId) =>
-    set({ selection: { measureId, noteId } }),
+  setSelection: (measureId, staffId, noteId) =>
+    set({ selection: { measureId, staffId, noteId } }),
 
   moveSelection: (direction) =>
     set((s) => {
@@ -71,74 +104,66 @@ export const useScoreStore = create((set) => ({
       const mIdx = measures.findIndex((m) => m.id === selection.measureId)
       if (mIdx === -1) return s
       const measure = measures[mIdx]
-      const notes = measure.notes
+      const notes = measure.notesByStaff[selection.staffId] ?? []
       const nIdx = notes.findIndex((n) => n.id === selection.noteId)
 
       if (direction === 'right') {
-        if (nIdx < notes.length - 1) {
-          return { selection: { measureId: measure.id, noteId: notes[nIdx + 1].id } }
-        }
+        if (nIdx < notes.length - 1) return { selection: { ...selection, noteId: notes[nIdx + 1].id } }
         if (mIdx < measures.length - 1) {
           const next = measures[mIdx + 1]
-          return { selection: { measureId: next.id, noteId: next.notes[0]?.id ?? null } }
+          const nextNotes = next.notesByStaff[selection.staffId] ?? []
+          return { selection: { ...selection, measureId: next.id, noteId: nextNotes[0]?.id ?? null } }
         }
       }
-
       if (direction === 'left') {
-        if (nIdx > 0) {
-          return { selection: { measureId: measure.id, noteId: notes[nIdx - 1].id } }
-        }
-        if (nIdx === 0) {
-          return { selection: { measureId: measure.id, noteId: null } }
-        }
+        if (nIdx > 0)  return { selection: { ...selection, noteId: notes[nIdx - 1].id } }
+        if (nIdx === 0) return { selection: { ...selection, noteId: null } }
         if (mIdx > 0) {
           const prev = measures[mIdx - 1]
-          const last = prev.notes[prev.notes.length - 1]
-          return { selection: { measureId: prev.id, noteId: last?.id ?? null } }
+          const prevNotes = prev.notesByStaff[selection.staffId] ?? []
+          return { selection: { ...selection, measureId: prev.id, noteId: prevNotes[prevNotes.length - 1]?.id ?? null } }
         }
       }
-
       return s
     }),
 
   // --- Notes ---
-  // Inserts after the selected note (or at end if nothing selected), then advances cursor.
   insertNote: (overrides = {}) => {
     const newId = uuid()
     set((s) => {
       const { selection, measures, inputState } = s
       const measureId = selection.measureId ?? measures[measures.length - 1]?.id
-      if (!measureId) return s
+      const staffId   = selection.staffId   ?? s.staves[0]?.id
+      if (!measureId || !staffId) return s
 
       const newNote = {
-        id: newId,
-        pitch: overrides.pitch ?? 'C',
-        octave: overrides.octave ?? inputState.octave,
-        accidental: overrides.accidental !== undefined ? overrides.accidental : inputState.accidental,
-        duration: overrides.duration ?? inputState.duration,
-        dotted: overrides.dotted ?? inputState.dotted,
-        isRest: overrides.isRest ?? false,
+        id:          newId,
+        pitch:       overrides.pitch       ?? 'C',
+        octave:      overrides.octave      ?? inputState.octave,
+        accidental:  overrides.accidental  !== undefined ? overrides.accidental : inputState.accidental,
+        duration:    overrides.duration    ?? inputState.duration,
+        dotted:      overrides.dotted      ?? inputState.dotted,
+        isRest:      overrides.isRest      ?? false,
       }
 
-      const past = [...s.history.past, snapshot(s.measures)]
+      const snap = snapshot(s)
       const newMeasures = measures.map((m) => {
         if (m.id !== measureId) return m
+        const notes = m.notesByStaff[staffId] ?? []
+        let newNotes
         if (!selection.noteId) {
-          return { ...m, notes: [...m.notes, newNote] }
+          newNotes = [...notes, newNote]
+        } else {
+          const idx = notes.findIndex((n) => n.id === selection.noteId)
+          newNotes = [...notes.slice(0, idx + 1), newNote, ...notes.slice(idx + 1)]
         }
-        const idx = m.notes.findIndex((n) => n.id === selection.noteId)
-        const notes = [
-          ...m.notes.slice(0, idx + 1),
-          newNote,
-          ...m.notes.slice(idx + 1),
-        ]
-        return { ...m, notes }
+        return { ...m, notesByStaff: { ...m.notesByStaff, [staffId]: newNotes } }
       })
 
       return {
         measures: newMeasures,
-        selection: { measureId, noteId: newId },
-        history: { past, future: [] },
+        selection: { measureId, staffId, noteId: newId },
+        history: { past: [...s.history.past, snap], future: [] },
       }
     })
   },
@@ -147,46 +172,47 @@ export const useScoreStore = create((set) => ({
     set((s) => {
       const { selection, measures } = s
       if (!selection.noteId) return s
-
-      const past = [...s.history.past, snapshot(s.measures)]
+      const snap = snapshot(s)
       let prevNoteId = null
 
       const newMeasures = measures.map((m) => {
         if (m.id !== selection.measureId) return m
-        const idx = m.notes.findIndex((n) => n.id === selection.noteId)
-        prevNoteId = m.notes[idx - 1]?.id ?? null
-        return { ...m, notes: m.notes.filter((n) => n.id !== selection.noteId) }
+        const notes = m.notesByStaff[selection.staffId] ?? []
+        const idx = notes.findIndex((n) => n.id === selection.noteId)
+        prevNoteId = notes[idx - 1]?.id ?? null
+        return { ...m, notesByStaff: { ...m.notesByStaff, [selection.staffId]: notes.filter((n) => n.id !== selection.noteId) } }
       })
 
       return {
         measures: newMeasures,
-        selection: { measureId: selection.measureId, noteId: prevNoteId },
-        history: { past, future: [] },
+        selection: { ...selection, noteId: prevNoteId },
+        history: { past: [...s.history.past, snap], future: [] },
       }
     }),
 
   // --- Measures ---
   addMeasure: () =>
     set((s) => {
-      const newMeasure = { id: uuid(), notes: [] }
-      const past = [...s.history.past, snapshot(s.measures)]
+      const snap = snapshot(s)
+      const staveIds = s.staves.map((st) => st.id)
+      const newMeasure = emptyMeasure(staveIds)
       return {
         measures: [...s.measures, newMeasure],
-        selection: { measureId: newMeasure.id, noteId: null },
-        history: { past, future: [] },
+        selection: { ...s.selection, measureId: newMeasure.id, noteId: null },
+        history: { past: [...s.history.past, snap], future: [] },
       }
     }),
 
   removeMeasure: (measureId) =>
     set((s) => {
       if (s.measures.length <= 1) return s
-      const past = [...s.history.past, snapshot(s.measures)]
+      const snap = snapshot(s)
       const newMeasures = s.measures.filter((m) => m.id !== measureId)
-      const lastMeasure = newMeasures[newMeasures.length - 1]
+      const last = newMeasures[newMeasures.length - 1]
       return {
         measures: newMeasures,
-        selection: { measureId: lastMeasure.id, noteId: null },
-        history: { past, future: [] },
+        selection: { ...s.selection, measureId: last.id, noteId: null },
+        history: { past: [...s.history.past, snap], future: [] },
       }
     }),
 
@@ -195,12 +221,11 @@ export const useScoreStore = create((set) => ({
     set((s) => {
       const { past, future } = s.history
       if (past.length === 0) return s
+      const prev = past[past.length - 1]
       return {
-        measures: past[past.length - 1],
-        history: {
-          past: past.slice(0, -1),
-          future: [snapshot(s.measures), ...future],
-        },
+        measures: prev.measures,
+        staves:   prev.staves,
+        history: { past: past.slice(0, -1), future: [snapshot(s), ...future] },
       }
     }),
 
@@ -209,22 +234,22 @@ export const useScoreStore = create((set) => ({
       const { past, future } = s.history
       if (future.length === 0) return s
       return {
-        measures: future[0],
-        history: {
-          past: [...past, snapshot(s.measures)],
-          future: future.slice(1),
-        },
+        measures: future[0].measures,
+        staves:   future[0].staves,
+        history: { past: [...past, snapshot(s)], future: future.slice(1) },
       }
     }),
 
   // --- Reset ---
   reset: () => {
-    const id = uuid()
+    const sid = uuid()
+    const mid = uuid()
     set({
-      meta: { title: '', tempo: 120, timeSignature: [4, 4], keySignature: 'C', clef: 'treble' },
+      meta: { title: '', tempo: 120, timeSignature: [4, 4], keySignature: 'C' },
+      staves: [{ id: sid, clef: 'treble', label: '' }],
       inputState: { duration: 'q', accidental: null, octave: 4, dotted: false },
-      measures: [{ id, notes: [] }],
-      selection: { measureId: id, noteId: null },
+      measures: [{ id: mid, notesByStaff: { [sid]: [] } }],
+      selection: { measureId: mid, staffId: sid, noteId: null },
       history: { past: [], future: [] },
     })
   },
