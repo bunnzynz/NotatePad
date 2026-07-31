@@ -1,73 +1,54 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useMemo, useCallback } from 'react'
 import { Renderer, Stave, StaveNote, Voice, Formatter, Accidental, StaveConnector } from 'vexflow'
 import { useScoreStore } from '../../store/scoreStore.js'
+import {
+  computeLayout,
+  PAGE_W, PAGE_H, MAR_L, MAR_R, MAR_T,
+  STAVE_H, STAFF_GAP, SYS_ABOVE,
+  systemHeight,
+} from '../../notation/layout.js'
 import styles from './ScoreCanvas.module.css'
 
-// Layout constants
-const STAVE_HEIGHT  = 40   // VexFlow standard (4 × 10px line spacing)
-const FIRST_STAVE_Y = 70   // top of first staff
-const STAFF_GAP     = 50   // vertical gap between staves
-const NOTE_WIDTH    = 46
-const MIN_MEASURE_W = 120
-const FIRST_EXTRA   = 80   // extra width for clef + time sig on measure 0
+// ── Pitch helpers ─────────────────────────────────────────────────────────────
 
-// How wide is a measure?
-function measureWidth(noteCount, isFirst) {
-  return Math.max(MIN_MEASURE_W, (isFirst ? FIRST_EXTRA : 30) + noteCount * NOTE_WIDTH + 20)
-}
-
-// Total SVG height based on number of staves
-function svgHeight(staffCount) {
-  return FIRST_STAVE_Y + staffCount * STAVE_HEIGHT + (staffCount - 1) * STAFF_GAP + 60
-}
-
-// Y position of a staff (0-indexed)
-function staffY(staffIndex) {
-  return FIRST_STAVE_Y + staffIndex * (STAVE_HEIGHT + STAFF_GAP)
-}
-
-// --- Pitch helpers ---
 const DIATONIC = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
 
-// Top line of each clef maps to a specific note
-const CLEF_TOP_LINE = {
-  treble: { noteIdx: 3, octave: 5 }, // F5
-  bass:   { noteIdx: 5, octave: 3 }, // A3
-  alto:   { noteIdx: 4, octave: 4 }, // G4
-  tenor:  { noteIdx: 2, octave: 4 }, // E4
+// Top staff line → reference note for each clef
+const CLEF_TOP = {
+  treble: { idx: 3, oct: 5 }, // F5
+  bass:   { idx: 5, oct: 3 }, // A3
+  alto:   { idx: 4, oct: 4 }, // G4
+  tenor:  { idx: 2, oct: 4 }, // E4
 }
 
-// Convert staff Y click position to pitch
 function yToPitch(clickY, staveTopY, clef) {
-  const ref = CLEF_TOP_LINE[clef] ?? CLEF_TOP_LINE.treble
-  // Each line/space = 5px. Step 0 = top line.
+  const ref  = CLEF_TOP[clef] ?? CLEF_TOP.treble
   const step = Math.round((clickY - staveTopY) / 5)
-  let noteIdx = ref.noteIdx - step
-  let octave  = ref.octave
-  while (noteIdx < 0) { noteIdx += 7; octave-- }
-  while (noteIdx >= 7) { noteIdx -= 7; octave++ }
-  return { pitch: DIATONIC[noteIdx], octave: Math.max(1, Math.min(8, octave)) }
+  let ni = ref.idx - step, oct = ref.oct
+  while (ni < 0)  { ni += 7; oct-- }
+  while (ni >= 7) { ni -= 7; oct++ }
+  return { pitch: DIATONIC[ni], octave: Math.max(1, Math.min(8, oct)) }
 }
 
-// --- Duration beat values (as fraction of whole note) ---
-const BEAT_VALUES = { w: 1, h: 0.5, q: 0.25, '8': 0.125, '16': 0.0625, '32': 0.03125, '64': 0.015625 }
+// ── Duration / beat helpers ───────────────────────────────────────────────────
+
+const BEAT_VAL = { w: 1, h: 0.5, q: 0.25, '8': 0.125, '16': 0.0625, '32': 0.03125, '64': 0.015625 }
 
 function noteBeatValue(note) {
-  const base = BEAT_VALUES[note.duration] ?? 0.25
+  const base = BEAT_VAL[note.duration] ?? 0.25
   return note.dotted ? base * 1.5 : base
 }
 
-// Total beats a time signature holds (as fraction of whole note)
-function measureCapacity(timeSignature) {
-  return timeSignature[0] / timeSignature[1]
+function measureCapacity([num, denom]) {
+  return num / denom
 }
 
-// --- VexFlow helpers ---
+// ── VexFlow helpers ───────────────────────────────────────────────────────────
+
 function vexKey(note) {
   if (note.isRest) return 'b/4'
-  const letter = note.pitch.toLowerCase()
   const acc = note.accidental === '#' ? '#' : note.accidental === 'b' ? 'b' : ''
-  return `${letter}${acc}/${note.octave}`
+  return `${note.pitch.toLowerCase()}${acc}/${note.octave}`
 }
 
 function vexDuration(note) {
@@ -77,289 +58,303 @@ function vexDuration(note) {
   return d
 }
 
-export default function ScoreCanvas() {
-  const containerRef   = useRef(null)
-  const notePositions  = useRef({})  // { noteId: { x, staveY, measureId, staffId } }
-  const measureBounds  = useRef({})  // { measureId: { x, width } }
-  const staffBounds    = useRef([])  // [{ y, height, staffId }] for click detection
+// ── Component ─────────────────────────────────────────────────────────────────
 
+export default function ScoreCanvas() {
   const measures    = useScoreStore((s) => s.measures)
   const staves      = useScoreStore((s) => s.staves)
   const meta        = useScoreStore((s) => s.meta)
   const selection   = useScoreStore((s) => s.selection)
-  const inputState  = useScoreStore((s) => s.inputState)
   const setSelection   = useScoreStore((s) => s.setSelection)
-  const setActiveStaff = useScoreStore((s) => s.setActiveStaff)
-  const insertNote     = useScoreStore((s) => s.insertNote)
+
+  const pageRefs      = useRef([])
+  const notePositions = useRef({})   // noteId → { x, y, pageIdx, measureId, staffId }
+  const measureInfo   = useRef({})   // measureId → { pageIdx, systems[] }
+  const staffInfo     = useRef([])   // [{ staffId, pageIdx, systemIdx, staveTopY }]
+
+  const layout = useMemo(
+    () => computeLayout(measures, staves, meta),
+    [measures, staves, meta]
+  )
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-    container.innerHTML = ''
-    notePositions.current  = {}
-    measureBounds.current  = {}
-    staffBounds.current    = staves.map((st, i) => ({
-      staffId: st.id,
-      y: staffY(i),
-      bottom: staffY(i) + STAVE_HEIGHT,
-    }))
+    notePositions.current = {}
+    measureInfo.current   = {}
+    staffInfo.current     = []
+    pageRefs.current      = pageRefs.current.slice(0, layout.pages.length)
 
-    // Build measure widths (based on max notes across all staves)
-    const mwList = measures.map((m, i) => {
-      const maxNotes = staves.reduce((max, st) => {
-        return Math.max(max, (m.notesByStaff[st.id] ?? []).length)
-      }, 0)
-      return measureWidth(maxNotes, i === 0)
-    })
+    const sysH   = systemHeight(staves.length)
+    const cap    = measureCapacity(meta.timeSignature)
 
-    const totalWidth = Math.max(mwList.reduce((s, w) => s + w, 0) + 20, 800)
-    const height = svgHeight(staves.length)
+    layout.pages.forEach((page, pi) => {
+      const container = pageRefs.current[pi]
+      if (!container) return
+      container.innerHTML = ''
 
-    const renderer = new Renderer(container, Renderer.Backends.SVG)
-    renderer.resize(totalWidth, height)
-    const ctx = renderer.getContext()
-    const svg = container.querySelector('svg')
+      const renderer = new Renderer(container, Renderer.Backends.SVG)
+      renderer.resize(PAGE_W, PAGE_H)
+      const ctx = renderer.getContext()
+      ctx.setFont('Bravura,Arial', 10)
+      const svg = container.querySelector('svg')
 
-    // Score title
-    if (meta.title) {
-      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-      t.setAttribute('x', totalWidth / 2)
-      t.setAttribute('y', 24)
-      t.setAttribute('text-anchor', 'middle')
-      t.setAttribute('font-family', 'var(--font-ui)')
-      t.setAttribute('font-size', '14')
-      t.setAttribute('font-weight', '600')
-      t.setAttribute('fill', 'var(--color-text)')
-      t.textContent = meta.title
-      svg.appendChild(t)
-    }
-
-    // Active measure highlight (behind everything)
-    let xAccum = 0
-    measures.forEach((measure, mi) => {
-      const mw = mwList[mi]
-      measureBounds.current[measure.id] = { x: xAccum, width: mw }
-      if (measure.id === selection.measureId) {
-        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-        rect.setAttribute('x', xAccum + 1)
-        rect.setAttribute('y', FIRST_STAVE_Y - 12)
-        rect.setAttribute('width', mw - 2)
-        rect.setAttribute('height', height - FIRST_STAVE_Y - 10)
-        rect.setAttribute('fill', 'var(--color-accent-light)')
-        rect.setAttribute('rx', '3')
-        svg.insertBefore(rect, svg.firstChild)
+      // Title block (page 0 only)
+      if (pi === 0 && meta.title) {
+        const t = mkText(meta.title, PAGE_W / 2, MAR_T - 28, '18', '600', 'middle')
+        svg.appendChild(t)
       }
-      xAccum += mw
-    })
 
-    // Render each staff row
-    staves.forEach((staff, si) => {
-      const sy = staffY(si)
-      xAccum = 0
+      // Page number (page 2+)
+      if (pi > 0) {
+        const pn = mkText(`${pi + 1}`, PAGE_W / 2, PAGE_H - 24, '11', '400', 'middle')
+        pn.setAttribute('fill', '#888')
+        svg.appendChild(pn)
+      }
 
-      const staveObjects = [] // keep for StaveConnector
+      // ── Systems ──────────────────────────────────────────────────────────
+      page.systems.forEach((system, si) => {
+        const sysX  = MAR_L
+        const sysY  = MAR_T + system.yTop  // absolute SVG y of first staff's top line
 
-      measures.forEach((measure, mi) => {
-        const mw     = mwList[mi]
-        const isFirst = mi === 0
-        const notes  = measure.notesByStaff[staff.id] ?? []
-        const capacity = measureCapacity(meta.timeSignature)
-
-        const stave = new Stave(xAccum, sy, mw)
-        if (isFirst) {
-          stave.addClef(staff.clef)
-          stave.addTimeSignature(`${meta.timeSignature[0]}/${meta.timeSignature[1]}`)
+        // Active system highlight
+        const isActiveSys = system.measures.some(ml => ml.measure.id === selection.measureId)
+        if (isActiveSys) {
+          const hi = mkRect(sysX - 4, sysY - SYS_ABOVE + 4, PAGE_W - MAR_L - MAR_R + 8, sysH - 4, 'var(--color-accent-light)', 4)
+          svg.insertBefore(hi, svg.firstChild)
         }
-        stave.setContext(ctx).draw()
-        staveObjects.push(stave)
 
-        if (notes.length > 0) {
+        // Measure number label (show on first measure of every system except measure 1)
+        if (system.firstMeasureNumber > 1) {
+          const mn = mkText(`${system.firstMeasureNumber}`, sysX, sysY - SYS_ABOVE + 10, '10', '400', 'start')
+          mn.setAttribute('fill', 'var(--color-text-muted)')
+          svg.appendChild(mn)
+        }
+
+        const firstStavePerStaff = []
+
+        // ── Render each staff row ─────────────────────────────────────────
+        staves.forEach((staff, sti) => {
+          const staveTopY = sysY + sti * (STAVE_H + STAFF_GAP)
+
+          // Track for click detection
+          staffInfo.current.push({
+            staffId: staff.id, pageIdx: pi, systemIdx: si,
+            y: staveTopY, bottom: staveTopY + STAVE_H,
+          })
+
+          system.measures.forEach((ml, mi) => {
+            const staveX = sysX + ml.x
+            const stave  = new Stave(staveX, staveTopY, ml.width)
+
+            if (ml.isFirstInSystem) stave.addClef(staff.clef)
+            if (ml.isFirstInPiece)  stave.addTimeSignature(`${meta.timeSignature[0]}/${meta.timeSignature[1]}`)
+
+            stave.setContext(ctx).draw()
+
+            if (mi === 0) firstStavePerStaff.push(stave)
+
+            // Track measure bounds
+            if (!measureInfo.current[ml.measure.id]) measureInfo.current[ml.measure.id] = []
+            measureInfo.current[ml.measure.id].push({ pageIdx: pi, staveX, staveW: ml.width, staveTopY, staffId: staff.id })
+
+            // Notes
+            const notes = ml.measure.notesByStaff[staff.id] ?? []
+            if (notes.length === 0) return
+
+            try {
+              let beats = 0
+              const staveNotes = notes.map((note) => {
+                const sn = new StaveNote({ keys: [vexKey(note)], duration: vexDuration(note) })
+
+                if (note.accidental && !note.isRest) sn.addModifier(new Accidental(note.accidental), 0)
+
+                const overflow = beats >= cap
+                beats += noteBeatValue(note)
+
+                if (note.id === selection.noteId) {
+                  sn.setStyle({ fillStyle: 'var(--color-accent)', strokeStyle: 'var(--color-accent)' })
+                } else if (overflow) {
+                  sn.setStyle({ fillStyle: 'var(--color-error)', strokeStyle: 'var(--color-error)' })
+                }
+
+                return sn
+              })
+
+              const voice = new Voice({ num_beats: meta.timeSignature[0], beat_value: meta.timeSignature[1] })
+                .setMode(Voice.Mode.SOFT)
+              voice.addTickables(staveNotes)
+
+              const noteAreaW = Math.max(
+                20,
+                (stave.getX() + stave.getWidth()) - stave.getNoteStartX() - 6
+              )
+              new Formatter().joinVoices([voice]).format([voice], noteAreaW)
+              voice.draw(ctx, stave)
+
+              staveNotes.forEach((sn, idx) => {
+                const nid = notes[idx]?.id
+                if (nid) {
+                  notePositions.current[nid] = {
+                    x: sn.getAbsoluteX(), y: staveTopY,
+                    pageIdx: pi, measureId: ml.measure.id, staffId: staff.id, noteId: nid,
+                  }
+                }
+              })
+            } catch (err) {
+              console.warn('ScoreCanvas: render error', err)
+            }
+          })
+        })
+
+        // System connectors (left edge)
+        if (staves.length > 1 && firstStavePerStaff.length >= 2) {
           try {
-            let runningBeats = 0
-            const staveNotes = notes.map((note) => {
-              const sn = new StaveNote({ keys: [vexKey(note)], duration: vexDuration(note) })
+            const brace = new StaveConnector(firstStavePerStaff[0], firstStavePerStaff[staves.length - 1])
+            brace.setType(StaveConnector.type.BRACE)
+            brace.setContext(ctx).draw()
 
-              if (note.accidental && !note.isRest) {
-                sn.addModifier(new Accidental(note.accidental), 0)
-              }
+            const line = new StaveConnector(firstStavePerStaff[0], firstStavePerStaff[staves.length - 1])
+            line.setType(StaveConnector.type.SINGLE_LEFT)
+            line.setContext(ctx).draw()
+          } catch (_) {}
+        } else if (staves.length === 1 && firstStavePerStaff.length > 0) {
+          // Single staff: draw a thin line at the left of the system
+          try {
+            const c = new StaveConnector(firstStavePerStaff[0], firstStavePerStaff[0])
+            c.setType(StaveConnector.type.SINGLE_LEFT)
+            c.setContext(ctx).draw()
+          } catch (_) {}
+        }
 
-              // Overflow: note pushes past time signature capacity → red
-              const beatVal = noteBeatValue(note)
-              const isOverflow = runningBeats >= capacity
-              runningBeats += beatVal
+        // Cursor line
+        if (selection.measureId && isActiveSys) {
+          const selStaffIdx = staves.findIndex(s => s.id === selection.staffId)
+          const cursorStaveY = sysY + (selStaffIdx >= 0 ? selStaffIdx : 0) * (STAVE_H + STAFF_GAP)
+          let cursorX = null
 
-              if (note.id === selection.noteId) {
-                sn.setStyle({ fillStyle: 'var(--color-accent)', strokeStyle: 'var(--color-accent)' })
-              } else if (isOverflow) {
-                sn.setStyle({ fillStyle: 'var(--color-error)', strokeStyle: 'var(--color-error)' })
-              }
+          if (selection.noteId && notePositions.current[selection.noteId]?.pageIdx === pi) {
+            cursorX = notePositions.current[selection.noteId].x + 16
+          } else {
+            const mInfo = measureInfo.current[selection.measureId]?.find(i => i.pageIdx === pi && i.staffId === selection.staffId)
+            if (mInfo) cursorX = mInfo.staveX + (layout.pages[pi].systems[si].measures[0]?.isFirstInPiece ? 80 : 18)
+          }
 
-              return sn
-            })
-
-            const voice = new Voice({ num_beats: meta.timeSignature[0], beat_value: meta.timeSignature[1] })
-              .setMode(Voice.Mode.SOFT)
-            voice.addTickables(staveNotes)
-            new Formatter().joinVoices([voice]).format([voice], mw - (isFirst ? 90 : 30))
-            voice.draw(ctx, stave)
-
-            // Capture note x positions
-            staveNotes.forEach((sn, idx) => {
-              const noteId = notes[idx]?.id
-              if (noteId) {
-                notePositions.current[noteId] = { x: sn.getAbsoluteX(), staveY: sy, measureId: measure.id, staffId: staff.id }
-              }
-            })
-          } catch (err) {
-            console.warn('ScoreCanvas render error:', err)
+          if (cursorX !== null) {
+            const cur = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+            cur.setAttribute('x1', cursorX); cur.setAttribute('x2', cursorX)
+            cur.setAttribute('y1', cursorStaveY - 4)
+            cur.setAttribute('y2', cursorStaveY + STAVE_H + 4)
+            cur.setAttribute('stroke', 'var(--color-accent)')
+            cur.setAttribute('stroke-width', '2')
+            cur.setAttribute('stroke-linecap', 'round')
+            cur.setAttribute('opacity', '0.85')
+            svg.appendChild(cur)
           }
         }
-
-        xAccum += mw
       })
-
-      // Brace connector for multi-staff: draw on leftmost stave of each measure set
-      // (VexFlow StaveConnector connects the first stave to the one below it)
     })
+  }, [layout, measures, staves, meta, selection])
 
-    // Draw brace connecting staves on first measure's left edge
-    if (staves.length > 1) {
-      const staveRefs = staves.map((_, si) => new Stave(0, staffY(si), 1))
-      // Re-create thin staves just for the connector geometry
-      const firstStaveObjs = staves.map((_, si) => {
-        const s = new Stave(0, staffY(si), mwList[0])
-        return s
-      })
-      try {
-        const connector = new StaveConnector(firstStaveObjs[0], firstStaveObjs[staves.length - 1])
-        connector.setType(StaveConnector.type.BRACE)
-        connector.setContext(ctx).draw()
-        // Also draw a straight bracket on the far left
-        const bracket = new StaveConnector(firstStaveObjs[0], firstStaveObjs[staves.length - 1])
-        bracket.setType(StaveConnector.type.BRACKET)
-        bracket.setContext(ctx).draw()
-      } catch (e) {
-        // ignore connector errors
-      }
-    }
+  // ── Click handler ──────────────────────────────────────────────────────────
 
-    // Cursor line (drawn on top)
-    if (selection.measureId) {
-      let cursorX = null
-      const selStaffIdx = staves.findIndex((st) => st.id === selection.staffId)
-      const cursorStaveY = selStaffIdx >= 0 ? staffY(selStaffIdx) : FIRST_STAVE_Y
-
-      if (selection.noteId && notePositions.current[selection.noteId]) {
-        cursorX = notePositions.current[selection.noteId].x + 18
-      } else {
-        const bounds = measureBounds.current[selection.measureId]
-        if (bounds) {
-          const mi = measures.findIndex((m) => m.id === selection.measureId)
-          cursorX = bounds.x + (mi === 0 ? FIRST_EXTRA + 10 : 20)
-        }
-      }
-
-      if (cursorX !== null) {
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-        line.setAttribute('x1', cursorX)
-        line.setAttribute('y1', cursorStaveY - 4)
-        line.setAttribute('x2', cursorX)
-        line.setAttribute('y2', cursorStaveY + STAVE_HEIGHT + 4)
-        line.setAttribute('stroke', 'var(--color-accent)')
-        line.setAttribute('stroke-width', '2')
-        line.setAttribute('stroke-linecap', 'round')
-        line.setAttribute('opacity', '0.85')
-        svg.appendChild(line)
-      }
-    }
-
-  }, [measures, staves, meta, selection])
-
-  const handleClick = useCallback((e) => {
-    const svg = containerRef.current?.querySelector('svg')
+  const handlePageClick = useCallback((e, pi) => {
+    const svg = pageRefs.current[pi]?.querySelector('svg')
     if (!svg) return
-    const rect  = svg.getBoundingClientRect()
+    const rect   = svg.getBoundingClientRect()
     const clickX = e.clientX - rect.left
     const clickY = e.clientY - rect.top
 
-    // 1. Check if click lands on an existing note (select it)
+    // 1. Select existing note if close enough
     let closest = null, minDist = Infinity
     for (const pos of Object.values(notePositions.current)) {
-      const dist = Math.abs(pos.x - clickX)
-      if (dist < minDist && dist < 26) { minDist = dist; closest = pos }
+      if (pos.pageIdx !== pi) continue
+      const d = Math.abs(pos.x - clickX)
+      if (d < minDist && d < 24) { minDist = d; closest = pos }
     }
-    if (closest) {
-      setSelection(closest.measureId, closest.staffId, closest.noteId)
-      return
-    }
+    if (closest) { setSelection(closest.measureId, closest.staffId, closest.noteId); return }
 
-    // 2. Determine which staff was clicked (by Y)
-    let clickedStaff = null
-    const threshold = 30 // px above/below staff lines still counts
-    for (const sb of staffBounds.current) {
-      if (clickY >= sb.y - threshold && clickY <= sb.bottom + threshold) {
-        clickedStaff = sb
+    // 2. Find which staff was clicked (by Y)
+    const THRESHOLD = 28
+    const hitStaff = staffInfo.current.find(
+      sb => sb.pageIdx === pi && clickY >= sb.y - THRESHOLD && clickY <= sb.bottom + THRESHOLD
+    )
+    if (!hitStaff) return
+
+    // 3. Find which measure was clicked (by X)
+    let hitMeasureId = null
+    for (const [measureId, infoArr] of Object.entries(measureInfo.current)) {
+      const info = infoArr.find(i => i.pageIdx === pi && i.staffId === hitStaff.staffId)
+      if (info && clickX >= info.staveX && clickX < info.staveX + info.staveW) {
+        hitMeasureId = measureId
         break
       }
     }
-    if (!clickedStaff) return
+    if (!hitMeasureId) return
 
-    // 3. Determine which measure was clicked (by X)
-    let clickedMeasureId = null
-    for (const [measureId, bounds] of Object.entries(measureBounds.current)) {
-      if (clickX >= bounds.x && clickX < bounds.x + bounds.width) {
-        clickedMeasureId = measureId
-        break
-      }
-    }
-    if (!clickedMeasureId) return
+    // 4. Derive pitch from Y position
+    const staffDef = staves.find(s => s.id === hitStaff.staffId)
+    const { pitch, octave } = yToPitch(clickY, hitStaff.y, staffDef?.clef ?? 'treble')
 
-    // 4. Determine insert position within measure (based on X vs existing note positions)
-    const staffId = clickedStaff.staffId
-    const staveTopY = clickedStaff.y
-    const staffDef = staves.find((st) => st.id === staffId)
-    const clef = staffDef?.clef ?? 'treble'
-    const { pitch, octave } = yToPitch(clickY, staveTopY, clef)
-
-    // Find the note in this measure+staff whose X is closest but before clickX
-    // so we set cursor there before inserting
+    // 5. Find insert position by X within measure
     const notesInMeasure = Object.values(notePositions.current)
-      .filter((p) => p.measureId === clickedMeasureId && p.staffId === staffId)
+      .filter(p => p.measureId === hitMeasureId && p.staffId === hitStaff.staffId && p.pageIdx === pi)
       .sort((a, b) => a.x - b.x)
 
     let anchorNoteId = null
-    for (const pos of notesInMeasure) {
-      if (pos.x < clickX) anchorNoteId = pos.noteId
+    for (const p of notesInMeasure) {
+      if (p.x < clickX) anchorNoteId = p.noteId
     }
 
-    // Set cursor, then insert
-    setSelection(clickedMeasureId, staffId, anchorNoteId)
-    // Use setTimeout 0 so selection state lands before insertNote reads it
+    // Set cursor then insert
+    setSelection(hitMeasureId, hitStaff.staffId, anchorNoteId)
     setTimeout(() => {
-      useScoreStore.getState().setSelection(clickedMeasureId, staffId, anchorNoteId)
-      useScoreStore.getState().insertNote({ pitch, octave, accidental: null })
+      const s = useScoreStore.getState()
+      s.setSelection(hitMeasureId, hitStaff.staffId, anchorNoteId)
+      s.insertNote({ pitch, octave, accidental: null })
     }, 0)
   }, [staves, setSelection])
 
-  const isEmpty = measures.length === 1 && staves.every((st) => (measures[0].notesByStaff[st.id] ?? []).length === 0)
+  const isEmpty = measures.length === 1 && staves.every(st => (measures[0].notesByStaff[st.id] ?? []).length === 0)
 
   return (
-    <div
-      className={styles.wrapper}
-      role="application"
-      aria-label="Score editor"
-      tabIndex={0}
-    >
-      <div
-        ref={containerRef}
-        className={styles.canvas}
-        onClick={handleClick}
-      />
+    <div className={styles.scoreArea}>
+      {layout.pages.map((page, pi) => (
+        <div key={pi} className={styles.page}>
+          <div
+            ref={el => { pageRefs.current[pi] = el }}
+            className={styles.pageContent}
+            onClick={(e) => handlePageClick(e, pi)}
+          />
+        </div>
+      ))}
       {isEmpty && (
         <p className={styles.hint}>
-          Select a duration (1–6), then press A–G or click on the staff to add notes.
+          Select a duration (1–6), then press A–G or click the staff to add notes.
         </p>
       )}
     </div>
   )
+}
+
+// ── SVG helpers ────────────────────────────────────────────────────────────────
+
+function mkText(content, x, y, fontSize, fontWeight, anchor) {
+  const t = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+  t.setAttribute('x', x); t.setAttribute('y', y)
+  t.setAttribute('text-anchor', anchor)
+  t.setAttribute('font-family', 'var(--font-ui)')
+  t.setAttribute('font-size', fontSize)
+  t.setAttribute('font-weight', fontWeight)
+  t.setAttribute('fill', 'var(--color-text)')
+  t.textContent = content
+  return t
+}
+
+function mkRect(x, y, w, h, fill, rx = 0) {
+  const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+  r.setAttribute('x', x); r.setAttribute('y', y)
+  r.setAttribute('width', w); r.setAttribute('height', h)
+  r.setAttribute('fill', fill); r.setAttribute('rx', rx)
+  return r
 }

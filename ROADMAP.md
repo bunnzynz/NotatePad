@@ -37,30 +37,33 @@ A developer can `npm run dev` and see a staff with notes rendering in a browser.
 
 ---
 
-## Phase 1 — Freestyle Canvas
+## Phase 1 — Freestyle Canvas ✓ COMPLETE
 **Goal:** A user can place notes freely, with no enforcement, and edit them.
 
 This is the **core differentiator** of NotatePad. The thing no other tool does properly.
 
 ### Deliverables
-- [ ] Note entry via keyboard (A–G keys)
-- [ ] Duration selection (1–7 keys or toolbar buttons)
-- [ ] Accidental entry (+ / - / = keys)
-- [ ] Rest entry (R key)
-- [ ] Dotted note toggle (. key)
-- [ ] Octave shift (Ctrl+Up / Ctrl+Down)
-- [ ] Notes render correctly on the staff via VexFlow
-- [ ] **No beat enforcement** — 20 crotchets in a bar renders, no error, no warning
-- [ ] Barlines are manual — user adds them when they want
-- [ ] Note selection via arrow keys and click
-- [ ] Note deletion (Delete / Backspace)
-- [ ] Working undo/redo (Ctrl+Z / Ctrl+Y, full history)
-- [ ] Measures can be added and removed
-- [ ] Treble and bass clef support
-- [ ] Basic score metadata: title, tempo, key signature, time signature
+- [x] Note entry via keyboard (A–G keys)
+- [x] Duration selection (1–6 keys or toolbar buttons)
+- [x] Accidental entry (+ / - / = keys, toolbar buttons)
+- [x] Rest entry (R key)
+- [x] Dotted note toggle (. key, toolbar button)
+- [x] Octave shift (Ctrl+Up / Ctrl+Down, toolbar buttons)
+- [x] Notes render correctly on the staff via VexFlow
+- [x] **No beat enforcement** — 20 crotchets in a bar renders, no error, no warning
+- [x] Barlines are manual — user adds them when they want (+ Bar / − Bar)
+- [x] Note selection via arrow keys and click
+- [x] Note deletion (Delete / Backspace)
+- [x] Working undo/redo (Ctrl+Z / Ctrl+Y, full history)
+- [x] Measures can be added and removed
+- [x] Treble and bass clef support
+- [x] Score title editable inline in header
+- [ ] Key signature and time signature editing in toolbar `← Phase 1.1`
 
 ### Done When
 A user can freestyle-write a passage of music with no interference from the app.
+
+**Result:** 20/20 tests passing. Live at https://notatepad.vercel.app
 
 ---
 
@@ -261,7 +264,7 @@ A user can share a link to their score and a colleague can open it and comment.
 ## Deployment
 
 **Host:** Vercel (free tier)
-**Target URL:** `notatePad.vercel.app`
+**Live URL:** https://notatepad.vercel.app
 **Build command:** `npm run build`
 **Output directory:** `dist`
 
