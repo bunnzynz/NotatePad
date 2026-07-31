@@ -8,7 +8,7 @@
 .header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 0 20px;
   height: 48px;
   background: var(--color-surface);
@@ -20,21 +20,54 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--color-text);
   letter-spacing: -0.3px;
+  flex-shrink: 0;
+}
+
+.titleInput {
+  flex: 1;
+  max-width: 320px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  background: transparent;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.titleInput::placeholder {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.titleInput:hover {
+  border-color: var(--color-border);
+  background: var(--color-surface-alt);
+}
+
+.titleInput:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  background: var(--color-surface);
 }
 
 .tagline {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--color-text-muted);
-  margin-left: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .main {
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
