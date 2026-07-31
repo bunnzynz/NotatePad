@@ -1,0 +1,59 @@
+:root {
+  /* Colours */
+  --color-bg:           #FAFAF8;
+  --color-surface:      #FFFFFF;
+  --color-surface-alt:  #F4F4F1;
+  --color-border:       #E5E5E0;
+  --color-accent:       #6B9FD4;
+  --color-accent-hover: #5A8FC4;
+  --color-accent-light: #EAF2FB;
+  --color-text:         #1A1A1A;
+  --color-text-muted:   #6B6B6B;
+  --color-staff:        #3A3A3A;
+  --color-error:        #C0392B;
+  --color-warning:      #E67E22;
+  --color-success:      #27AE60;
+
+  /* Radii */
+  --radius-sm:  5px;
+  --radius-md:  10px;
+  --radius-lg:  18px;
+
+  /* Typography */
+  --font-ui:        'Inter', system-ui, -apple-system, sans-serif;
+  --font-size-xs:   11px;
+  --font-size-sm:   13px;
+  --font-size-base: 15px;
+  --font-size-lg:   17px;
+
+  /* Spacing */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+
+  /* Layout */
+  --toolbar-height:  56px;
+  --playback-height: 52px;
+  --header-height:   48px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.10);
+}
+
+/* High contrast mode overrides */
+body.high-contrast {
+  --color-bg:         #000000;
+  --color-surface:    #1A1A1A;
+  --color-surface-alt:#111111;
+  --color-border:     #555555;
+  --color-accent:     #4DA6FF;
+  --color-accent-hover:#66B3FF;
+  --color-accent-light:#002244;
+  --color-text:       #FFFFFF;
+  --color-text-muted: #AAAAAA;
+  --color-staff:      #FFFFFF;
+}

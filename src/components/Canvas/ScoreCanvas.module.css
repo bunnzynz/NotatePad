@@ -1,0 +1,42 @@
+.wrapper {
+  flex: 1;
+  overflow: auto;
+  padding: var(--space-6);
+  background: var(--color-bg);
+  position: relative;
+}
+
+.canvas {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  min-width: 800px;
+  min-height: 200px;
+  padding: var(--space-4);
+}
+
+/* Make VexFlow SVG inherit the staff colour token */
+.canvas svg {
+  display: block;
+}
+
+.canvas :global(path),
+.canvas :global(rect),
+.canvas :global(line) {
+  stroke: var(--color-staff);
+}
+
+.canvas :global(text) {
+  fill: var(--color-staff);
+}
+
+.empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  pointer-events: none;
+}
