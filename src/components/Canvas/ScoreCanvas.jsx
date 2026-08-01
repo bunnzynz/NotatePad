@@ -3,7 +3,7 @@ import { Renderer, Stave, StaveNote, Voice, Formatter, Accidental, StaveConnecto
 import { useScoreStore } from '../../store/scoreStore.js'
 import {
   computeLayout,
-  PAGE_W, PAGE_H, MAR_L, MAR_T,
+  PAGE_W, PAGE_H, MAR_L, MAR_T, CONTENT_W,
   STAVE_H, STAFF_GAP, SYS_ABOVE,
   systemHeight,
 } from '../../notation/layout.js'
@@ -13,12 +13,11 @@ import styles from './ScoreCanvas.module.css'
 
 const DIATONIC = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
 
-// Top staff line → reference note for each clef
 const CLEF_TOP = {
-  treble: { idx: 3, oct: 5 }, // F5
-  bass:   { idx: 5, oct: 3 }, // A3
-  alto:   { idx: 4, oct: 4 }, // G4
-  tenor:  { idx: 2, oct: 4 }, // E4
+  treble: { idx: 3, oct: 5 },
+  bass:   { idx: 5, oct: 3 },
+  alto:   { idx: 4, oct: 4 },
+  tenor:  { idx: 2, oct: 4 },
 }
 
 function yToPitch(clickY, staveTopY, clef) {
@@ -58,26 +57,50 @@ function vexDuration(note) {
   return d
 }
 
+// ── SVG primitives ────────────────────────────────────────────────────────────
+
+function svgEl(tag) {
+  return document.createElementNS('http://www.w3.org/2000/svg', tag)
+}
+
+function mkRect(x, y, w, h, fill, rx = 0) {
+  const r = svgEl('rect')
+  r.setAttribute('x', x); r.setAttribute('y', y)
+  r.setAttribute('width', w); r.setAttribute('height', h)
+  r.setAttribute('fill', fill); r.setAttribute('rx', rx)
+  return r
+}
+
+function mkText(content, x, y, fontSize, fontWeight, anchor) {
+  const t = svgEl('text')
+  t.setAttribute('x', x); t.setAttribute('y', y)
+  t.setAttribute('text-anchor', anchor)
+  t.setAttribute('font-family', 'var(--font-ui)')
+  t.setAttribute('font-size', fontSize)
+  t.setAttribute('font-weight', fontWeight)
+  t.setAttribute('fill', 'var(--color-text)')
+  t.textContent = content
+  return t
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ScoreCanvas() {
-  const measures    = useScoreStore((s) => s.measures)
-  const staves      = useScoreStore((s) => s.staves)
-  const meta        = useScoreStore((s) => s.meta)
-  const selection   = useScoreStore((s) => s.selection)
-  const setSelection   = useScoreStore((s) => s.setSelection)
+  const measures     = useScoreStore((s) => s.measures)
+  const staves       = useScoreStore((s) => s.staves)
+  const meta         = useScoreStore((s) => s.meta)
+  const selection    = useScoreStore((s) => s.selection)
+  const setSelection = useScoreStore((s) => s.setSelection)
 
   const pageRefs      = useRef([])
-  const notePositions = useRef({})   // noteId → { x, y, pageIdx, measureId, staffId }
-  const measureInfo   = useRef({})   // measureId → { pageIdx, systems[] }
-  const staffInfo     = useRef([])   // [{ staffId, pageIdx, systemIdx, staveTopY }]
+  const notePositions = useRef({})
+  const measureInfo   = useRef({})
+  const staffInfo     = useRef([])
 
   const layout = useMemo(
     () => computeLayout(measures, staves, meta),
     [measures, staves, meta]
   )
-
-  const sysH = useMemo(() => systemHeight(staves.length), [staves.length])
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -87,7 +110,8 @@ export default function ScoreCanvas() {
     staffInfo.current     = []
     pageRefs.current      = pageRefs.current.slice(0, layout.pages.length)
 
-    const cap = measureCapacity(meta.timeSignature)
+    const sysH = systemHeight(staves.length)
+    const cap  = measureCapacity(meta.timeSignature)
 
     layout.pages.forEach((page, pi) => {
       const container = pageRefs.current[pi]
@@ -100,40 +124,52 @@ export default function ScoreCanvas() {
       ctx.setFont('Bravura,Arial', 10)
       const svg = container.querySelector('svg')
 
-      // Title block (page 0 only)
+      // ── Background group ──────────────────────────────────────────────────
+      // Inserted as the FIRST child of the SVG so everything VexFlow draws
+      // after (into its own root <g>) renders on top of our highlights.
+      const bgGroup = svgEl('g')
+      svg.insertBefore(bgGroup, svg.firstChild)
+
+      // ── Title (page 0) ────────────────────────────────────────────────────
       if (pi === 0 && meta.title) {
-        const t = mkText(meta.title, PAGE_W / 2, MAR_T - 28, '18', '600', 'middle')
-        svg.appendChild(t)
+        svg.appendChild(mkText(meta.title, PAGE_W / 2, MAR_T - 28, '18', '600', 'middle'))
       }
 
-      // Page number (page 2+)
+      // ── Page number (page 2+) ─────────────────────────────────────────────
       if (pi > 0) {
         const pn = mkText(`${pi + 1}`, PAGE_W / 2, PAGE_H - 24, '11', '400', 'middle')
         pn.setAttribute('fill', '#888')
         svg.appendChild(pn)
       }
 
-      // ── Systems ──────────────────────────────────────────────────────────
+      // ── Systems ───────────────────────────────────────────────────────────
       page.systems.forEach((system, si) => {
-        const sysX  = MAR_L
-        const sysY  = MAR_T + system.yTop  // absolute SVG y of first staff's top line
+        const sysX = MAR_L
+        const sysY = MAR_T + system.yTop
 
+        // Active system highlight — drawn into bgGroup so it's behind all staves
         const isActiveSys = system.measures.some(ml => ml.measure.id === selection.measureId)
+        if (isActiveSys) {
+          bgGroup.appendChild(mkRect(
+            sysX - 4, sysY - SYS_ABOVE,
+            CONTENT_W + 8, sysH,
+            'var(--color-accent-light)', 4
+          ))
+        }
 
-        // Measure number label (show on first measure of every system except measure 1)
+        // Measure number
         if (system.firstMeasureNumber > 1) {
-          const mn = mkText(`${system.firstMeasureNumber}`, sysX, sysY - SYS_ABOVE + 10, '10', '400', 'start')
-          mn.setAttribute('fill', 'var(--color-text-muted)')
+          const mn = mkText(`${system.firstMeasureNumber}`, sysX, sysY - SYS_ABOVE + 12, '10', '400', 'start')
+          mn.setAttribute('fill', '#999')
           svg.appendChild(mn)
         }
 
         const firstStavePerStaff = []
 
-        // ── Render each staff row ─────────────────────────────────────────
+        // ── Staff rows ────────────────────────────────────────────────────
         staves.forEach((staff, sti) => {
           const staveTopY = sysY + sti * (STAVE_H + STAFF_GAP)
 
-          // Track for click detection
           staffInfo.current.push({
             staffId: staff.id, pageIdx: pi, systemIdx: si,
             y: staveTopY, bottom: staveTopY + STAVE_H,
@@ -147,14 +183,11 @@ export default function ScoreCanvas() {
             if (ml.isFirstInPiece)  stave.addTimeSignature(`${meta.timeSignature[0]}/${meta.timeSignature[1]}`)
 
             stave.setContext(ctx).draw()
-
             if (mi === 0) firstStavePerStaff.push(stave)
 
-            // Track measure bounds
             if (!measureInfo.current[ml.measure.id]) measureInfo.current[ml.measure.id] = []
             measureInfo.current[ml.measure.id].push({ pageIdx: pi, staveX, staveW: ml.width, staveTopY, staffId: staff.id })
 
-            // Notes
             const notes = ml.measure.notesByStaff[staff.id] ?? []
             if (notes.length === 0) return
 
@@ -162,7 +195,6 @@ export default function ScoreCanvas() {
               let beats = 0
               const staveNotes = notes.map((note) => {
                 const sn = new StaveNote({ keys: [vexKey(note)], duration: vexDuration(note) })
-
                 if (note.accidental && !note.isRest) sn.addModifier(new Accidental(note.accidental), 0)
 
                 const overflow = beats >= cap
@@ -173,7 +205,6 @@ export default function ScoreCanvas() {
                 } else if (overflow) {
                   sn.setStyle({ fillStyle: 'var(--color-error)', strokeStyle: 'var(--color-error)' })
                 }
-
                 return sn
               })
 
@@ -181,10 +212,7 @@ export default function ScoreCanvas() {
                 .setMode(Voice.Mode.SOFT)
               voice.addTickables(staveNotes)
 
-              const noteAreaW = Math.max(
-                20,
-                (stave.getX() + stave.getWidth()) - stave.getNoteStartX() - 6
-              )
+              const noteAreaW = Math.max(20, (stave.getX() + stave.getWidth()) - stave.getNoteStartX() - 6)
               new Formatter().joinVoices([voice]).format([voice], noteAreaW)
               voice.draw(ctx, stave)
 
@@ -198,32 +226,27 @@ export default function ScoreCanvas() {
                 }
               })
             } catch (err) {
-              console.warn('ScoreCanvas: render error', err)
+              console.warn('ScoreCanvas render error', err)
             }
           })
         })
 
-        // System connectors (left edge)
+        // System connectors
         if (staves.length > 1 && firstStavePerStaff.length >= 2) {
           try {
-            const brace = new StaveConnector(firstStavePerStaff[0], firstStavePerStaff[staves.length - 1])
-            brace.setType(StaveConnector.type.BRACE)
-            brace.setContext(ctx).draw()
-
-            const line = new StaveConnector(firstStavePerStaff[0], firstStavePerStaff[staves.length - 1])
-            line.setType(StaveConnector.type.SINGLE_LEFT)
-            line.setContext(ctx).draw()
+            new StaveConnector(firstStavePerStaff[0], firstStavePerStaff[staves.length - 1])
+              .setType(StaveConnector.type.BRACE).setContext(ctx).draw()
+            new StaveConnector(firstStavePerStaff[0], firstStavePerStaff[staves.length - 1])
+              .setType(StaveConnector.type.SINGLE_LEFT).setContext(ctx).draw()
           } catch (_) {}
         } else if (staves.length === 1 && firstStavePerStaff.length > 0) {
-          // Single staff: draw a thin line at the left of the system
           try {
-            const c = new StaveConnector(firstStavePerStaff[0], firstStavePerStaff[0])
-            c.setType(StaveConnector.type.SINGLE_LEFT)
-            c.setContext(ctx).draw()
+            new StaveConnector(firstStavePerStaff[0], firstStavePerStaff[0])
+              .setType(StaveConnector.type.SINGLE_LEFT).setContext(ctx).draw()
           } catch (_) {}
         }
 
-        // Cursor line
+        // Cursor line — appended to svg (after VexFlow's root <g>) so it's on top
         if (selection.measureId && isActiveSys) {
           const selStaffIdx = staves.findIndex(s => s.id === selection.staffId)
           const cursorStaveY = sysY + (selStaffIdx >= 0 ? selStaffIdx : 0) * (STAVE_H + STAFF_GAP)
@@ -232,12 +255,16 @@ export default function ScoreCanvas() {
           if (selection.noteId && notePositions.current[selection.noteId]?.pageIdx === pi) {
             cursorX = notePositions.current[selection.noteId].x + 16
           } else {
-            const mInfo = measureInfo.current[selection.measureId]?.find(i => i.pageIdx === pi && i.staffId === selection.staffId)
-            if (mInfo) cursorX = mInfo.staveX + (layout.pages[pi].systems[si].measures[0]?.isFirstInPiece ? 80 : 18)
+            const mInfo = measureInfo.current[selection.measureId]
+              ?.find(i => i.pageIdx === pi && i.staffId === selection.staffId)
+            if (mInfo) {
+              const sysFirstMeasure = layout.pages[pi].systems[si].measures[0]
+              cursorX = mInfo.staveX + (sysFirstMeasure?.isFirstInPiece ? 80 : 18)
+            }
           }
 
           if (cursorX !== null) {
-            const cur = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+            const cur = svgEl('line')
             cur.setAttribute('x1', cursorX); cur.setAttribute('x2', cursorX)
             cur.setAttribute('y1', cursorStaveY - 4)
             cur.setAttribute('y2', cursorStaveY + STAVE_H + 4)
@@ -252,7 +279,7 @@ export default function ScoreCanvas() {
     })
   }, [layout, measures, staves, meta, selection])
 
-  // ── Click handler ──────────────────────────────────────────────────────────
+  // ── Click handler ─────────────────────────────────────────────────────────
 
   const handlePageClick = useCallback((e, pi) => {
     const svg = pageRefs.current[pi]?.querySelector('svg')
@@ -261,7 +288,7 @@ export default function ScoreCanvas() {
     const clickX = e.clientX - rect.left
     const clickY = e.clientY - rect.top
 
-    // 1. Select existing note if close enough
+    // 1. Select existing note
     let closest = null, minDist = Infinity
     for (const pos of Object.values(notePositions.current)) {
       if (pos.pageIdx !== pi) continue
@@ -270,29 +297,28 @@ export default function ScoreCanvas() {
     }
     if (closest) { setSelection(closest.measureId, closest.staffId, closest.noteId); return }
 
-    // 2. Find which staff was clicked (by Y)
+    // 2. Find clicked staff
     const THRESHOLD = 28
     const hitStaff = staffInfo.current.find(
       sb => sb.pageIdx === pi && clickY >= sb.y - THRESHOLD && clickY <= sb.bottom + THRESHOLD
     )
     if (!hitStaff) return
 
-    // 3. Find which measure was clicked (by X)
+    // 3. Find clicked measure
     let hitMeasureId = null
     for (const [measureId, infoArr] of Object.entries(measureInfo.current)) {
       const info = infoArr.find(i => i.pageIdx === pi && i.staffId === hitStaff.staffId)
       if (info && clickX >= info.staveX && clickX < info.staveX + info.staveW) {
-        hitMeasureId = measureId
-        break
+        hitMeasureId = measureId; break
       }
     }
     if (!hitMeasureId) return
 
-    // 4. Derive pitch from Y position
+    // 4. Pitch from Y
     const staffDef = staves.find(s => s.id === hitStaff.staffId)
     const { pitch, octave } = yToPitch(clickY, hitStaff.y, staffDef?.clef ?? 'treble')
 
-    // 5. Find insert position by X within measure
+    // 5. Insert position from X
     const notesInMeasure = Object.values(notePositions.current)
       .filter(p => p.measureId === hitMeasureId && p.staffId === hitStaff.staffId && p.pageIdx === pi)
       .sort((a, b) => a.x - b.x)
@@ -302,7 +328,6 @@ export default function ScoreCanvas() {
       if (p.x < clickX) anchorNoteId = p.noteId
     }
 
-    // Set cursor then insert
     setSelection(hitMeasureId, hitStaff.staffId, anchorNoteId)
     setTimeout(() => {
       const s = useScoreStore.getState()
@@ -317,22 +342,6 @@ export default function ScoreCanvas() {
     <div className={styles.scoreArea}>
       {layout.pages.map((page, pi) => (
         <div key={pi} className={styles.page}>
-          {/* HTML layer: active system highlight — sits below VexFlow SVG via z-index */}
-          {page.systems.map((sys, si) => {
-            const isActive = sys.measures.some(ml => ml.measure.id === selection.measureId)
-            if (!isActive) return null
-            return (
-              <div
-                key={si}
-                className={styles.systemHighlight}
-                style={{
-                  top:    MAR_T + sys.yTop - SYS_ABOVE,
-                  height: sysH,
-                }}
-              />
-            )
-          })}
-          {/* VexFlow SVG layer — transparent background so highlight shows through */}
           <div
             ref={el => { pageRefs.current[pi] = el }}
             className={styles.pageContent}
@@ -348,18 +357,3 @@ export default function ScoreCanvas() {
     </div>
   )
 }
-
-// ── SVG helpers ────────────────────────────────────────────────────────────────
-
-function mkText(content, x, y, fontSize, fontWeight, anchor) {
-  const t = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-  t.setAttribute('x', x); t.setAttribute('y', y)
-  t.setAttribute('text-anchor', anchor)
-  t.setAttribute('font-family', 'var(--font-ui)')
-  t.setAttribute('font-size', fontSize)
-  t.setAttribute('font-weight', fontWeight)
-  t.setAttribute('fill', 'var(--color-text)')
-  t.textContent = content
-  return t
-}
-

@@ -164,18 +164,15 @@ export default function Toolbar() {
             aria-label="Remove last staff"
           >−Staff</button>
         )}
-        {staves.length > 1 && staves.map((staff) => (
-          <select
-            key={`clef-${staff.id}`}
-            className={styles.select}
-            value={staff.clef}
-            onChange={(e) => setStaffClef(staff.id, e.target.value)}
-            aria-label={`Staff ${staves.indexOf(staff) + 1} clef`}
-            title={`Staff ${staves.indexOf(staff) + 1} clef`}
-          >
-            {CLEF_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-          </select>
-        ))}
+        <select
+          className={styles.select}
+          value={staves.find(s => s.id === selection.staffId)?.clef ?? 'treble'}
+          onChange={(e) => setStaffClef(selection.staffId, e.target.value)}
+          aria-label="Clef for active staff"
+          title="Change clef for the selected staff"
+        >
+          {CLEF_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+        </select>
       </div>
 
       <div className={styles.divider} aria-hidden="true" />

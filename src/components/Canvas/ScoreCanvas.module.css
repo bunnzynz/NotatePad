@@ -11,47 +11,21 @@
 
 .page {
   width: 794px;
-  height: 1123px;
+  min-height: 1123px;
   background: #FFFFFF;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
   border-radius: 2px;
   flex-shrink: 0;
-  position: relative;
   overflow: hidden;
 }
 
-/* Active system highlight — HTML div behind the VexFlow SVG */
-.systemHighlight {
-  position: absolute;
-  left: 68px;   /* MAR_L(72) − 4 */
-  right: 68px;  /* MAR_R(72) − 4 */
-  background: var(--color-accent-light);
-  border-radius: 4px;
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* VexFlow SVG container — transparent so highlight shows through */
 .pageContent {
-  position: absolute;
-  inset: 0;
+  width: 100%;
   cursor: default;
-  z-index: 2;
-  background: transparent;
 }
 
 .pageContent :global(svg) {
   display: block;
-  background: transparent;
-}
-
-.pageContent :global(path),
-.pageContent :global(line) {
-  stroke: var(--color-staff, #1A1A1A);
-}
-
-.pageContent :global(text) {
-  fill: var(--color-staff, #1A1A1A);
 }
 
 .hint {
@@ -61,11 +35,10 @@
   transform: translateX(-50%);
   color: #888;
   font-size: var(--font-size-sm);
-  text-align: center;
   pointer-events: none;
   white-space: nowrap;
-  background: rgba(255,255,255,0.85);
-  padding: 4px 12px;
+  background: rgba(255,255,255,0.9);
+  padding: 4px 14px;
   border-radius: 20px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
 }
