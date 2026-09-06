@@ -159,9 +159,9 @@ export default function Toolbar() {
         {staves.length > 1 && (
           <button
             className={styles.btn}
-            title="Remove bottom staff"
-            onClick={() => removeStaff(staves[staves.length - 1].id)}
-            aria-label="Remove last staff"
+            title="Remove selected staff"
+            onClick={() => removeStaff(selection.staffId)}
+            aria-label="Remove selected staff"
           >−Staff</button>
         )}
         <select

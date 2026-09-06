@@ -5,7 +5,8 @@ function snapshot(state) {
   return JSON.parse(JSON.stringify({ measures: state.measures, staves: state.staves }))
 }
 
-const firstStaffId = uuid()
+const firstStaffId  = uuid()
+const secondStaffId = uuid()
 const firstMeasureId = uuid()
 
 function emptyMeasure(staveIds) {
@@ -23,7 +24,10 @@ export const useScoreStore = create((set) => ({
   },
 
   // Staff definitions (order = top to bottom)
-  staves: [{ id: firstStaffId, clef: 'treble', label: '' }],
+  staves: [
+    { id: firstStaffId,  clef: 'treble', label: '' },
+    { id: secondStaffId, clef: 'bass',   label: '' },
+  ],
 
   inputState: {
     duration: 'q',
@@ -32,7 +36,7 @@ export const useScoreStore = create((set) => ({
     dotted: false,
   },
 
-  measures: [{ id: firstMeasureId, notesByStaff: { [firstStaffId]: [] } }],
+  measures: [{ id: firstMeasureId, notesByStaff: { [firstStaffId]: [], [secondStaffId]: [] } }],
 
   selection: {
     measureId: firstMeasureId,
@@ -242,14 +246,18 @@ export const useScoreStore = create((set) => ({
 
   // --- Reset ---
   reset: () => {
-    const sid = uuid()
-    const mid = uuid()
+    const sid1 = uuid()
+    const sid2 = uuid()
+    const mid  = uuid()
     set({
       meta: { title: '', tempo: 120, timeSignature: [4, 4], keySignature: 'C' },
-      staves: [{ id: sid, clef: 'treble', label: '' }],
+      staves: [
+        { id: sid1, clef: 'treble', label: '' },
+        { id: sid2, clef: 'bass',   label: '' },
+      ],
       inputState: { duration: 'q', accidental: null, octave: 4, dotted: false },
-      measures: [{ id: mid, notesByStaff: { [sid]: [] } }],
-      selection: { measureId: mid, staffId: sid, noteId: null },
+      measures: [{ id: mid, notesByStaff: { [sid1]: [], [sid2]: [] } }],
+      selection: { measureId: mid, staffId: sid1, noteId: null },
       history: { past: [], future: [] },
     })
   },
