@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import Toolbar from './components/Toolbar/Toolbar.jsx'
 import ScoreCanvas from './components/Canvas/ScoreCanvas.jsx'
 import PlaybackBar from './components/Playback/PlaybackBar.jsx'
@@ -9,8 +9,23 @@ import styles from './App.module.css'
 export default function App() {
   useKeyboard()
 
-  const title   = useScoreStore((s) => s.meta.title)
-  const setMeta = useScoreStore((s) => s.setMeta)
+  const title      = useScoreStore((s) => s.meta.title)
+  const setMeta    = useScoreStore((s) => s.setMeta)
+  const measures   = useScoreStore((s) => s.measures)
+  const staves     = useScoreStore((s) => s.staves)
+
+  const hasContent = Boolean(
+    title ||
+    measures.length > 1 ||
+    staves.some((st) => measures.some((m) => (m.notesByStaff[st.id] ?? []).length > 0))
+  )
+
+  useEffect(() => {
+    if (!hasContent) return
+    const handler = (e) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [hasContent])
 
   return (
     <div className={styles.app}>

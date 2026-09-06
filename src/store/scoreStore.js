@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import { v4 as uuid } from 'uuid'
 
 function snapshot(state) {
@@ -15,7 +16,9 @@ function emptyMeasure(staveIds) {
   return { id: uuid(), notesByStaff }
 }
 
-export const useScoreStore = create((set) => ({
+export const useScoreStore = create(
+  persist(
+    (set) => ({
   meta: {
     title: '',
     tempo: 120,
@@ -261,4 +264,16 @@ export const useScoreStore = create((set) => ({
       history: { past: [], future: [] },
     })
   },
-}))
+}),
+{
+  name: 'notatepad-score',
+  partialize: (state) => ({
+    meta:       state.meta,
+    staves:     state.staves,
+    measures:   state.measures,
+    selection:  state.selection,
+    inputState: state.inputState,
+  }),
+}
+)
+)
