@@ -47,13 +47,13 @@ Select the stave you want to delete (click its toolbar button so it is highlight
 
 ## 2. Adding Notes ✅
 
-### Step 1 — Click on the stave where you want the note
-**Click anywhere on a stave** to insert a note there immediately. The pitch is determined by where you click vertically — higher on the stave = higher pitch. The note slots in at the horizontal position you clicked, pushing later notes to the right.
+### Right-click to place a note
+**Right-click anywhere on a stave** to insert a note at that position. The pitch is determined by where you click vertically — higher on the stave = higher pitch. The note slots in at the horizontal position you clicked, pushing later notes to the right.
 
-If you click directly on an existing note head, it is selected (turned blue) rather than a new note being inserted.
+Dots, accidentals, and duration in the toolbar are applied to the note as it is placed.
 
-### Step 2 — Choose a duration
-Select a duration from the toolbar or press a number key:
+### Choose a duration first
+Select a duration from the toolbar before placing a note, or change it after by selecting the note and clicking a duration button:
 
 | Key | Duration |
 |-----|----------|
@@ -67,73 +67,68 @@ Select a duration from the toolbar or press a number key:
 The toolbar buttons show **W H Q 8 16 32**. The selected duration stays active until you change it.
 
 ### Keyboard entry (alternative)
-You can also add notes with the keyboard: press **A through G** to insert that pitch at the cursor. The octave is chosen automatically — the note lands in the octave closest to the previous note on that stave, so runs and scales flow naturally without jumping around. If there is no previous note, it defaults to the middle of the stave (B4 for treble, D3 for bass).
+Press **A through G** to insert that pitch at the cursor position. The octave is chosen automatically — the note lands in the octave closest to the previous note on that stave, so runs and scales flow naturally without jumping. If there is no previous note, it defaults to the middle of the stave (B4 for treble, D3 for bass).
 
 For a **rest**, press **R**.
 
-To move a note up or down by octave after entry, use **Ctrl + ↑ / ↓**.
-
 ### Accidentals
-Toggle accidentals **before or after** entering a note:
+Set accidentals **before** placing a note, or apply them to a selected note afterwards:
 
 - Click **♯** (or press `+`) — sharp
 - Click **♭** (or press `-`) — flat
-- Click **♮** (or press `=`) — **removes** any sharp or flat (from selected note or next note to be entered)
+- Click **♮** (or press `=`) — removes any sharp or flat
 
-An active ♯ or ♭ is shown highlighted. Click it again to deactivate. The accidental applies to the next note you enter, or to the currently selected note if one is selected.
-
-The ♮ button always clears accidentals — it removes the sharp or flat rather than adding a natural symbol.
+An active ♯ or ♭ is shown highlighted. Click it again to deactivate. The ♮ button always clears the accidental — it does not add a natural symbol; it simply removes the sharp or flat.
 
 ### Dotted notes
-Click the **·** button (or press `.`) to toggle dotted. When active, all notes entered will be dotted. The dot lengthens a note by half its value. You can also click **·** while a note is selected to add or remove its dot.
+Click the **·** button (or press `.`) to toggle dotted. The dot lengthens a note by half its value. Arm it before placing a note, or click it while a note is selected to add or remove its dot. The dot is always drawn in a space — if the note sits on a stave line, the dot moves up into the space above so it remains visible.
 
 ---
 
-## 3. Adjusting Pitch After Entry ✅
+## 3. Selecting Notes ✅
 
-Once a note is selected (blue), you can change its pitch without re-entering it:
+### Left-click to select
+Left-click directly on a note head to select it. The note turns blue and can be edited via the toolbar or keyboard.
 
-### Move by step (one diatonic step at a time)
-- **↑ Up arrow** — raises the note one step (e.g. C → D, E → F)
-- **↓ Down arrow** — lowers the note one step
-
-### Move by octave
-- **Ctrl + ↑** — raises the note one octave
-- **Ctrl + ↓** — lowers the note one octave
-
----
-
-## 4. Selecting Notes ✅
-
-### Click to select
-Click directly on a note head to select it. The note turns blue and the cursor line appears at that position.
-
-Click-to-select checks both horizontal and vertical position, so clicking near a note on the treble stave will not accidentally select a note on the bass stave.
+### Deselecting
+- **Left-click on empty space** in the score — clears the selection. Toolbar controls then arm for the next note you insert rather than editing the selected one.
+- **Escape** — same as clicking empty space, from the keyboard.
 
 ### Keyboard navigation
-- **← Left arrow** — move selection to the previous note in the measure, or to the last note of the previous measure
-- **→ Right arrow** — move selection to the next note, or to the first note of the next measure
+- **← Left arrow** — move selection to the previous note
+- **→ Right arrow** — move selection to the next note
 
-### Deselect
-Click in an empty part of a measure (not on a note) to move the cursor there without selecting a note.
+---
+
+## 4. Editing a Selected Note ✅
+
+When a note is selected (blue), the following toolbar controls edit it directly:
+
+- **Duration buttons (W H Q 8 16 32)** — change the note's duration
+- **· (dot)** — toggle the dot on or off
+- **♯ ♭ ♮** — add, change, or remove the accidental
+- **Step ↑ / ↓** — move the note up or down one diatonic step
+- **Oct ↑ / ↓** — move the note up or down one octave
+
+Keyboard equivalents when a note is selected:
+- **↑ / ↓** — step up / down
+- **Ctrl + ↑ / ↓** — octave up / down
 
 ---
 
 ## 5. Deleting Notes ✅
 
 - **Backspace** — deletes the currently selected note. The cursor moves to the note before it.
-- **Delete** — deletes the note to the **right** of the cursor (the next note after the selection). The cursor stays on the selected note.
-
-This matches standard text-editor conventions: Backspace removes what's behind the cursor, Delete removes what's in front.
+- **Delete** — deletes the note to the right of the cursor (the next note after the selection).
 
 ---
 
 ## 6. Measures (Bars) ✅
 
-- **+Bar** — adds a new bar at the end of the score. The cursor moves to the new bar.
+- **+Bar** — adds a new bar at the end of the score.
 - **−Bar** — removes the currently selected bar. Cannot remove the last remaining bar.
 
-Bars never enforce beat counts. You can put any number of notes in any bar. Notes that go beyond the time signature's capacity are highlighted in **red** as a visual guide, but are not removed.
+Bars never enforce beat counts. Notes that go beyond the time signature's capacity are highlighted in **red** as a visual guide but are never removed.
 
 ---
 
@@ -145,51 +140,57 @@ Click the **"Untitled score"** field at the top of the screen and type your titl
 
 ## 8. Time Signature ✅
 
-Choose from the **Time** dropdown in the toolbar. Options: 2/4, 3/4, 4/4, 3/8, 6/8, 12/8. The time signature is shown at the start of the first measure and is used to calculate which notes appear in red (overflow).
+Choose from the **Time** dropdown in the toolbar. Options: 2/4, 3/4, 4/4, 3/8, 6/8, 12/8. The time signature is shown at the start of the first measure and determines which notes are highlighted red (overflow).
 
 Changing the time signature does not move or remove notes.
 
 ---
 
-## 9. Key Signature ✅ (display only)
+## 9. Key Signature ✅ (stored, not yet rendered on stave)
 
-Choose a key from the **Key** dropdown. The key is stored with the score and saved to file, but is not yet rendered on the stave itself. Key signature rendering on the staff is coming in the next update.
+Choose a key from the **Key** dropdown. The key is stored with the score and saved to file. Rendering sharps/flats on the stave itself is coming in a future update.
 
 ---
 
 ## 10. Undo / Redo ✅
 
-- **Ctrl+Z** — undo the last action (unlimited steps)
+- **Ctrl+Z** — undo
 - **Ctrl+Y** — redo
+- **↩ ↪** buttons in the toolbar do the same
 
-Or use the **↩ ↪** buttons in the toolbar. Undo history is not saved between sessions.
+Undo history is not saved between sessions.
 
 ---
 
 ## 11. Saving and Opening Files ✅
 
 ### Save
-Click **Save** in the toolbar. Your score is downloaded as a `.notatePad` file (a JSON file). You can save this anywhere on your computer.
-
-The filename is your score title, or "Untitled Score" if no title is set.
+Click **Save** in the toolbar. Your score downloads as a `.notatePad` file. The filename is your score title, or "Untitled Score" if none is set.
 
 ### Open
-Click **Open** in the toolbar and choose a `.notatePad` file. The score loads immediately, replacing the current score.
+Click **Open** and choose a `.notatePad` file. The score loads immediately, replacing the current one.
 
 ### Session restore
-While you are in the same browser tab, your score is automatically saved to session storage. If the page refreshes accidentally, your score will be restored. Closing the tab or opening a new tab starts a fresh score.
+Your score is automatically saved to session storage while you are in the same browser tab. Refreshing the page restores it. Opening a new tab starts a blank score.
 
 ### Before you leave
-If your score has any content (notes, title, or more than one bar), the browser will warn you before you close the tab or navigate away. Use **Save** first if you want to keep your work.
+If your score has any content, the browser will warn you before you close or navigate away. Use **Save** first to keep your work.
 
 ---
 
-## Keyboard Shortcut Reference
+## Quick Reference
 
-### Note entry
+### Mouse
+| Action | Result |
+|--------|--------|
+| Right-click on stave | Insert note at that pitch and position |
+| Left-click on note head | Select the note (turns blue) |
+| Left-click on empty space | Deselect — arms toolbar for next insert |
+
+### Keyboard — note entry
 | Key | Action |
 |-----|--------|
-| A – G | Insert note with that pitch (octave auto-chosen) |
+| A – G | Insert note at that pitch (octave auto-chosen) |
 | R | Insert rest |
 | 1 | Whole note |
 | 2 | Half note |
@@ -200,19 +201,17 @@ If your score has any content (notes, title, or more than one bar), the browser 
 | . | Toggle dotted |
 | + or # | Sharp |
 | - | Flat |
-| = | Remove accidental (♮ / clear) |
+| = | Remove accidental |
 
-### Editing
+### Keyboard — editing
 | Key | Action |
 |-----|--------|
-| ↑ | Raise selected note one step |
-| ↓ | Lower selected note one step |
-| Ctrl + ↑ | Raise selected note one octave |
-| Ctrl + ↓ | Lower selected note one octave |
-| ← | Move selection left |
-| → | Move selection right |
-| Backspace | Delete selected note (cursor moves left) |
-| Delete | Delete the note to the right of cursor |
+| ↑ / ↓ | Raise / lower selected note one step |
+| Ctrl + ↑ / ↓ | Raise / lower selected note one octave |
+| ← / → | Move selection left / right |
+| Backspace | Delete selected note |
+| Delete | Delete note to the right of cursor |
+| Escape | Deselect current note |
 | Ctrl + Z | Undo |
 | Ctrl + Y | Redo |
 
@@ -220,39 +219,27 @@ If your score has any content (notes, title, or more than one bar), the browser 
 
 ## What's Coming
 
-The following features are planned but not yet built. See ROADMAP.md for the full phase plan.
-
-### Notation rendering
-- 🔜 Key signature shown on the stave
+### Notation
+- 🔜 Key signature rendered on the stave
 - 🔜 Ties across barlines
+- 🔜 Slurs
+- 🔜 Chords (multiple noteheads at the same position)
 - 🔜 Alto and tenor clef
 
-### Note entry
+### Editing
+- 🔜 Multi-select (drag to select a range of notes)
 - 🔜 Copy / paste notes and measures
-- 🔜 Change a note's duration after entry (select + press duration key)
-- 🔜 Insert mode (insert before cursor, not after)
 
 ### Playback
-- 🔜 Play from beginning
-- 🔜 Play from selection
-- 🔜 Tempo slider
+- 🔜 Play / stop with Tone.js
+- 🔜 Tempo control
 - 🔜 Active note highlight during playback
 - 🔜 Metronome click
 
 ### Export
-- 🔜 PDF export
-- 🔜 Print layout
-- 🔜 SVG export
-- 🔜 MusicXML export
-
-### Layout
-- 🔜 Zoom in / out
-- 🔜 Manual system breaks
+- 🔜 PDF / print
+- 🔜 MusicXML (industry-standard format for sharing with other notation apps)
 
 ### Score metadata
 - 🔜 Composer name
 - 🔜 Instrument labels per stave
-
-### Optional notation checker
-- 🔜 Manually triggered beat-count validation ("Check my notation" button)
-- 🔜 Results panel with jump-to-measure
