@@ -79,7 +79,7 @@ export function computeLayout(measures, staves, meta) {
   const justified = systems.map((sys, si) => {
     const isLast  = si === systems.length - 1
     const totalW  = sys.reduce((s, m) => s + m.w, 0)
-    const scale   = isLast && systems.length > 1 ? 1 : CONTENT_W / totalW
+    const scale   = isLast ? 1 : CONTENT_W / totalW
     let x = 0
     return sys.map((item, idx) => {
       const width = Math.round(item.w * scale)
