@@ -52,10 +52,10 @@ export function useKeyboard() {
         return
       }
 
-      // Accidentals: + (sharp), - (flat), = (natural)
+      // Accidentals: + (sharp), - (flat), = (clear / natural)
       if (key === '+' || key === '#') { e.preventDefault(); store.toggleAccidental('#'); return }
       if (key === '-')                { e.preventDefault(); store.toggleAccidental('b'); return }
-      if (key === '=')                { e.preventDefault(); store.toggleAccidental('n'); return }
+      if (key === '=')                { e.preventDefault(); store.clearAccidental();     return }
 
       // Dotted
       if (key === '.') { e.preventDefault(); store.toggleDotted(); return }
@@ -72,12 +72,10 @@ export function useKeyboard() {
         e.preventDefault(); store.shiftNoteStep('down'); return
       }
 
-      // Delete selected note
-      if (key === 'Delete' || key === 'Backspace') {
-        e.preventDefault()
-        store.deleteSelectedNote()
-        return
-      }
+      // Delete: remove selected note, cursor moves to previous note
+      // Backspace: remove note to the LEFT of cursor (selected note stays selected)
+      if (key === 'Backspace') { e.preventDefault(); store.deleteSelectedNote(); return }
+      if (key === 'Delete')    { e.preventDefault(); store.deleteNextNote();      return }
     }
 
     function onKeyDownCtrl(e) {

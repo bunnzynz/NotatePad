@@ -67,7 +67,11 @@ Select a duration from the toolbar or press a number key:
 The toolbar buttons show **W H Q 8 16 32**. The selected duration stays active until you change it.
 
 ### Step 3 — Enter the note
-Press **A through G** on your keyboard to insert the note at that pitch, in the current octave, on the active stave.
+Press **A through G** on your keyboard to insert the note at that pitch, on the active stave.
+
+**Octave is chosen automatically.** When you type a pitch letter, NotatePad places the note in the octave closest to the previous note you entered on that stave. This means notes flow naturally up and down the stave as you type — just like voice leading. If there is no previous note, the note is placed near the middle of the stave (B4 for treble, D3 for bass).
+
+To move a note up or down by octave after it is entered, use **Ctrl + ↑ / ↓**.
 
 For a **rest**, press **R**. A rest of the current duration is inserted.
 
@@ -78,12 +82,14 @@ Toggle accidentals **before or after** entering a note:
 
 - Click **♯** (or press `+`) — sharp
 - Click **♭** (or press `-`) — flat
-- Click **♮** (or press `=`) — natural
+- Click **♮** (or press `=`) — **removes** any sharp or flat (from selected note or next note to be entered)
 
-An active accidental is shown highlighted. Click it again to deactivate. The accidental applies to the next note you enter, or to the currently selected note if one is selected.
+An active ♯ or ♭ is shown highlighted. Click it again to deactivate. The accidental applies to the next note you enter, or to the currently selected note if one is selected.
+
+The ♮ button always clears accidentals — it removes the sharp or flat rather than adding a natural symbol.
 
 ### Dotted notes
-Click the **·** button (or press `.`) to toggle dotted. When active, all notes entered will be dotted. The dot lengthens a note by half its value.
+Click the **·** button (or press `.`) to toggle dotted. When active, all notes entered will be dotted. The dot lengthens a note by half its value. You can also click **·** while a note is selected to add or remove its dot.
 
 ---
 
@@ -98,9 +104,6 @@ Once a note is selected (blue), you can change its pitch without re-entering it:
 ### Move by octave
 - **Ctrl + ↑** — raises the note one octave
 - **Ctrl + ↓** — lowers the note one octave
-- **Oct ↑ / ↓ buttons in toolbar** — same as Ctrl+Arrow
-
-The **Oct number** in the toolbar always shows the octave of the selected note. When no note is selected, it shows the octave that will be used for the next note you type.
 
 ---
 
@@ -122,7 +125,10 @@ Click in an empty part of a measure (not on a note) to move the cursor there wit
 
 ## 5. Deleting Notes ✅
 
-Select the note you want to delete, then press **Delete** or **Backspace**. The note is removed and the cursor moves to the previous note.
+- **Backspace** — deletes the currently selected note. The cursor moves to the note before it.
+- **Delete** — deletes the note to the **right** of the cursor (the next note after the selection). The cursor stays on the selected note.
+
+This matches standard text-editor conventions: Backspace removes what's behind the cursor, Delete removes what's in front.
 
 ---
 
@@ -187,7 +193,7 @@ If your score has any content (notes, title, or more than one bar), the browser 
 ### Note entry
 | Key | Action |
 |-----|--------|
-| A – G | Insert note with that pitch |
+| A – G | Insert note with that pitch (octave auto-chosen) |
 | R | Insert rest |
 | 1 | Whole note |
 | 2 | Half note |
@@ -198,7 +204,7 @@ If your score has any content (notes, title, or more than one bar), the browser 
 | . | Toggle dotted |
 | + or # | Sharp |
 | - | Flat |
-| = | Natural |
+| = | Remove accidental (♮ / clear) |
 
 ### Editing
 | Key | Action |
@@ -209,7 +215,8 @@ If your score has any content (notes, title, or more than one bar), the browser 
 | Ctrl + ↓ | Lower selected note one octave |
 | ← | Move selection left |
 | → | Move selection right |
-| Delete / Backspace | Delete selected note |
+| Backspace | Delete selected note (cursor moves left) |
+| Delete | Delete the note to the right of cursor |
 | Ctrl + Z | Undo |
 | Ctrl + Y | Redo |
 

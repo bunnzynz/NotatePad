@@ -58,7 +58,6 @@ function vexKey(note) {
 
 function vexDuration(note) {
   let d = note.duration || 'q'
-  if (note.dotted && !note.isRest) d += 'd'
   if (note.isRest) d += 'r'
   return d
 }
@@ -205,7 +204,12 @@ export default function ScoreCanvas() {
             try {
               let beats = 0
               const staveNotes = notes.map((note) => {
-                const sn = new StaveNote({ keys: [vexKey(note)], duration: vexDuration(note), clef: staff.clef })
+                const sn = new StaveNote({
+                  keys: [vexKey(note)],
+                  duration: vexDuration(note),
+                  clef: staff.clef,
+                  ...(note.dotted && !note.isRest ? { dots: 1 } : {}),
+                })
                 if (note.accidental && !note.isRest) sn.addModifier(new Accidental(note.accidental), 0)
 
                 const overflow = beats >= cap

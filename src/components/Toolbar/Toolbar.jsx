@@ -27,9 +27,8 @@ export default function Toolbar() {
   const setMeta          = useScoreStore((s) => s.setMeta)
   const setDuration      = useScoreStore((s) => s.setDuration)
   const toggleAcc        = useScoreStore((s) => s.toggleAccidental)
+  const clearAcc         = useScoreStore((s) => s.clearAccidental)
   const toggleDotted     = useScoreStore((s) => s.toggleDotted)
-  const setOctave        = useScoreStore((s) => s.setOctave)
-  const shiftNoteOctave  = useScoreStore((s) => s.shiftNoteOctave)
   const addStaff         = useScoreStore((s) => s.addStaff)
   const removeStaff      = useScoreStore((s) => s.removeStaff)
   const setStaffClef     = useScoreStore((s) => s.setStaffClef)
@@ -43,19 +42,10 @@ export default function Toolbar() {
 
   const activeMeasure  = measures.find((m) => m.id === selection.measureId)
   const timeSigStr     = `${meta.timeSignature[0]}/${meta.timeSignature[1]}`
-  const selectedNote   = activeMeasure?.notesByStaff[selection.staffId]?.find((n) => n.id === selection.noteId)
-  const displayOctave  = selectedNote ? selectedNote.octave : inputState.octave
 
   function handleTimeSig(str) {
     const [n, d] = str.split('/').map(Number)
     setMeta({ timeSignature: [n, d] })
-  }
-
-  function handleOctaveDown() {
-    selectedNote ? shiftNoteOctave('down') : setOctave(inputState.octave - 1)
-  }
-  function handleOctaveUp() {
-    selectedNote ? shiftNoteOctave('up') : setOctave(inputState.octave + 1)
   }
 
   function handleSave() {
@@ -121,17 +111,7 @@ export default function Toolbar() {
       <div className={styles.group} role="group" aria-label="Accidentals">
         <button className={styles.btn} aria-pressed={inputState.accidental === '#'} title="Sharp (+)" onClick={() => toggleAcc('#')}>♯</button>
         <button className={styles.btn} aria-pressed={inputState.accidental === 'b'} title="Flat (−)"  onClick={() => toggleAcc('b')}>♭</button>
-        <button className={styles.btn} aria-pressed={inputState.accidental === 'n'} title="Natural (=)" onClick={() => toggleAcc('n')}>♮</button>
-      </div>
-
-      <div className={styles.divider} aria-hidden="true" />
-
-      {/* Octave */}
-      <div className={styles.group} role="group" aria-label="Octave">
-        <span className={styles.label} title={selectedNote ? 'Selected note octave' : 'Next note octave'}>Oct</span>
-        <button className={styles.btn} title="Octave down" onClick={handleOctaveDown}>↓</button>
-        <span className={styles.octaveDisplay} aria-live="polite">{displayOctave}</span>
-        <button className={styles.btn} title="Octave up"   onClick={handleOctaveUp}>↑</button>
+        <button className={styles.btn} title="Remove accidental (=)" onClick={clearAcc}>♮</button>
       </div>
 
       <div className={styles.divider} aria-hidden="true" />

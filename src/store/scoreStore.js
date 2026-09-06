@@ -4,6 +4,55 @@ import { v4 as uuid } from 'uuid'
 
 const DIATONIC = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
 
+// Middle line of each clef — used as reference when no previous note exists
+const CLEF_MID = {
+  treble: { pitch: 'B', octave: 4 },
+  bass:   { pitch: 'D', octave: 3 },
+  alto:   { pitch: 'C', octave: 4 },
+  tenor:  { pitch: 'A', octave: 3 },
+}
+
+// Given a pitch letter, return the octave that places it closest to refPitch/refOctave
+function nearestOctave(pitch, refPitch, refOctave) {
+  const noteIdx = DIATONIC.indexOf(pitch)
+  const refIdx  = DIATONIC.indexOf(refPitch)
+  const refSteps = refIdx + refOctave * 7
+  let bestOct = refOctave, bestDist = Infinity
+  for (let oct = refOctave - 1; oct <= refOctave + 1; oct++) {
+    const dist = Math.abs(noteIdx + oct * 7 - refSteps)
+    if (dist < bestDist || (dist === bestDist && oct < bestOct)) {
+      bestDist = dist; bestOct = oct
+    }
+  }
+  return Math.max(1, Math.min(8, bestOct))
+}
+
+// Find the most recent note on a stave and use it as the octave reference.
+// Falls back to the clef's middle line if no notes exist yet.
+function getSmartOctave(pitch, staves, staveId, measures, selection) {
+  const mIdx = measures.findIndex(m => m.id === selection.measureId)
+  const currNotes = mIdx >= 0 ? (measures[mIdx].notesByStaff[staveId] ?? []) : []
+
+  let ref = null
+  if (selection.noteId) {
+    const nIdx = currNotes.findIndex(n => n.id === selection.noteId)
+    ref = currNotes[nIdx] ?? currNotes[currNotes.length - 1]
+  } else {
+    ref = currNotes[currNotes.length - 1]
+  }
+
+  if (!ref && mIdx > 0) {
+    for (let i = mIdx - 1; i >= 0 && !ref; i--) {
+      const prevNotes = measures[i].notesByStaff[staveId] ?? []
+      if (prevNotes.length > 0) ref = prevNotes[prevNotes.length - 1]
+    }
+  }
+
+  const clef = staves.find(s => s.id === staveId)?.clef ?? 'treble'
+  const mid  = CLEF_MID[clef] ?? CLEF_MID.treble
+  return ref ? nearestOctave(pitch, ref.pitch, ref.octave) : nearestOctave(pitch, mid.pitch, mid.octave)
+}
+
 function snapshot(state) {
   return JSON.parse(JSON.stringify({ measures: state.measures, staves: state.staves }))
 }
@@ -138,14 +187,9 @@ export const useScoreStore = create(
     })),
 
   setActiveStaff: (staffId) =>
-    set((s) => {
-      const staff = s.staves.find(st => st.id === staffId)
-      const octave = staff?.clef === 'bass' ? 2 : 4
-      return {
-        selection:  { ...s.selection, staffId, noteId: null },
-        inputState: { ...s.inputState, octave },
-      }
-    }),
+    set((s) => ({
+      selection: { ...s.selection, staffId, noteId: null },
+    })),
 
   // --- Selection / cursor ---
   setSelection: (measureId, staffId, noteId) =>
@@ -184,15 +228,24 @@ export const useScoreStore = create(
   insertNote: (overrides = {}) => {
     const newId = uuid()
     set((s) => {
-      const { selection, measures, inputState } = s
+      const { selection, measures, inputState, staves } = s
       const measureId = selection.measureId ?? measures[measures.length - 1]?.id
-      const staffId   = selection.staffId   ?? s.staves[0]?.id
+      const staffId   = selection.staffId   ?? staves[0]?.id
       if (!measureId || !staffId) return s
+
+      // Auto-pick octave based on the last note on this stave (voice-leading approach).
+      // Only applies when a pitch is given without an explicit octave override.
+      let octave = overrides.octave
+      if (octave === undefined) {
+        octave = (overrides.pitch && !overrides.isRest)
+          ? getSmartOctave(overrides.pitch, staves, staffId, measures, selection)
+          : inputState.octave
+      }
 
       const newNote = {
         id:          newId,
         pitch:       overrides.pitch       ?? 'C',
-        octave:      overrides.octave      ?? inputState.octave,
+        octave,
         accidental:  overrides.accidental  !== undefined ? overrides.accidental : inputState.accidental,
         duration:    overrides.duration    ?? inputState.duration,
         dotted:      overrides.dotted      ?? inputState.dotted,
@@ -241,6 +294,47 @@ export const useScoreStore = create(
         selection: { ...selection, noteId: prevNoteId },
         history: { past: [...s.history.past, snap], future: [] },
       }
+    }),
+
+  // Delete the note that comes AFTER the currently selected note (for Delete key).
+  // If nothing is selected, deletes the first note in the active measure.
+  deleteNextNote: () =>
+    set((s) => {
+      const { selection, measures } = s
+      const snap = snapshot(s)
+
+      const mIdx = measures.findIndex(m => m.id === selection.measureId)
+      if (mIdx === -1) return s
+      const notes = measures[mIdx].notesByStaff[selection.staffId] ?? []
+      const nIdx  = selection.noteId ? notes.findIndex(n => n.id === selection.noteId) : -1
+      const targetNote = notes[nIdx + 1] ?? null
+      if (!targetNote) return s
+
+      const newMeasures = measures.map((m) => {
+        if (m.id !== selection.measureId) return m
+        const mNotes = m.notesByStaff[selection.staffId] ?? []
+        return { ...m, notesByStaff: { ...m.notesByStaff, [selection.staffId]: mNotes.filter(n => n.id !== targetNote.id) } }
+      })
+
+      return {
+        measures: newMeasures,
+        selection,  // cursor stays on the same note
+        history: { past: [...s.history.past, snap], future: [] },
+      }
+    }),
+
+  // Remove any accidental from the selected note, or clear inputState accidental.
+  clearAccidental: () =>
+    set((s) => {
+      const newInput = { ...s.inputState, accidental: null }
+      if (!s.selection.noteId) return { inputState: newInput }
+      const snap = snapshot(s)
+      const newMeasures = s.measures.map((m) => {
+        if (m.id !== s.selection.measureId) return m
+        const notes = m.notesByStaff[s.selection.staffId] ?? []
+        return { ...m, notesByStaff: { ...m.notesByStaff, [s.selection.staffId]: notes.map((n) => n.id === s.selection.noteId ? { ...n, accidental: null } : n) } }
+      })
+      return { inputState: newInput, measures: newMeasures, history: { past: [...s.history.past, snap], future: [] } }
     }),
 
   // --- Measures ---
