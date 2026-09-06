@@ -29,6 +29,8 @@ export default function Toolbar() {
   const toggleAcc        = useScoreStore((s) => s.toggleAccidental)
   const clearAcc         = useScoreStore((s) => s.clearAccidental)
   const toggleDotted     = useScoreStore((s) => s.toggleDotted)
+  const shiftNoteStep    = useScoreStore((s) => s.shiftNoteStep)
+  const shiftNoteOctave  = useScoreStore((s) => s.shiftNoteOctave)
   const addStaff         = useScoreStore((s) => s.addStaff)
   const removeStaff      = useScoreStore((s) => s.removeStaff)
   const setStaffClef     = useScoreStore((s) => s.setStaffClef)
@@ -41,6 +43,7 @@ export default function Toolbar() {
   const measures         = useScoreStore((s) => s.measures)
 
   const activeMeasure  = measures.find((m) => m.id === selection.measureId)
+  const selectedNote   = activeMeasure?.notesByStaff[selection.staffId]?.find((n) => n.id === selection.noteId)
   const timeSigStr     = `${meta.timeSignature[0]}/${meta.timeSignature[1]}`
 
   function handleTimeSig(str) {
@@ -112,6 +115,38 @@ export default function Toolbar() {
         <button className={styles.btn} aria-pressed={inputState.accidental === '#'} title="Sharp (+)" onClick={() => toggleAcc('#')}>♯</button>
         <button className={styles.btn} aria-pressed={inputState.accidental === 'b'} title="Flat (−)"  onClick={() => toggleAcc('b')}>♭</button>
         <button className={styles.btn} title="Remove accidental (=)" onClick={clearAcc}>♮</button>
+      </div>
+
+      <div className={styles.divider} aria-hidden="true" />
+
+      {/* Pitch nudge — only meaningful when a note is selected */}
+      <div className={styles.group} role="group" aria-label="Move selected note">
+        <span className={styles.label}>Step</span>
+        <button
+          className={styles.btn}
+          title="Move note up one step (↑)"
+          disabled={!selectedNote}
+          onClick={() => shiftNoteStep('up')}
+        >↑</button>
+        <button
+          className={styles.btn}
+          title="Move note down one step (↓)"
+          disabled={!selectedNote}
+          onClick={() => shiftNoteStep('down')}
+        >↓</button>
+        <span className={styles.label}>Oct</span>
+        <button
+          className={styles.btn}
+          title="Move note up one octave (Ctrl+↑)"
+          disabled={!selectedNote}
+          onClick={() => shiftNoteOctave('up')}
+        >↑</button>
+        <button
+          className={styles.btn}
+          title="Move note down one octave (Ctrl+↓)"
+          disabled={!selectedNote}
+          onClick={() => shiftNoteOctave('down')}
+        >↓</button>
       </div>
 
       <div className={styles.divider} aria-hidden="true" />
