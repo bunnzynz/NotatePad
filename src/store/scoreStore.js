@@ -95,7 +95,8 @@ export const useScoreStore = create(
   selection: {
     measureId: firstMeasureId,
     staffId: firstStaffId,
-    noteId: null,
+    noteId: null,       // which note is highlighted blue (null = none selected)
+    cursorNoteId: null, // where the cursor line sits (survives deselection)
   },
 
   history: { past: [], future: [] },
@@ -176,7 +177,7 @@ export const useScoreStore = create(
       return {
         staves: newStaves,
         measures: newMeasures,
-        selection: { ...s.selection, staffId: newStaffId, noteId: null },
+        selection: { ...s.selection, staffId: newStaffId, noteId: null, cursorNoteId: null },
         history: { past: [...s.history.past, snap], future: [] },
       }
     }),
@@ -188,12 +189,28 @@ export const useScoreStore = create(
 
   setActiveStaff: (staffId) =>
     set((s) => ({
-      selection: { ...s.selection, staffId, noteId: null },
+      selection: { ...s.selection, staffId, noteId: null, cursorNoteId: null },
     })),
 
   // --- Selection / cursor ---
+  // noteId = which note is highlighted blue. cursorNoteId = where the cursor line sits.
+  // They stay in sync normally; deselecting only clears noteId, leaving cursorNoteId alone.
   setSelection: (measureId, staffId, noteId) =>
-    set({ selection: { measureId, staffId, noteId } }),
+    set({ selection: { measureId, staffId, noteId, cursorNoteId: noteId } }),
+
+  // Move cursor without selecting — left-click on empty space uses this.
+  setCursorPosition: (measureId, staffId, cursorNoteId) =>
+    set((s) => ({ selection: { ...s.selection, measureId, staffId, noteId: null, cursorNoteId } })),
+
+  // Clear note selection while keeping cursor where it is — Escape uses this.
+  clearNoteSelection: () =>
+    set((s) => ({
+      selection: {
+        ...s.selection,
+        noteId: null,
+        cursorNoteId: s.selection.noteId ?? s.selection.cursorNoteId,
+      },
+    })),
 
   moveSelection: (direction) =>
     set((s) => {
@@ -205,20 +222,28 @@ export const useScoreStore = create(
       const nIdx = notes.findIndex((n) => n.id === selection.noteId)
 
       if (direction === 'right') {
-        if (nIdx < notes.length - 1) return { selection: { ...selection, noteId: notes[nIdx + 1].id } }
+        if (nIdx < notes.length - 1) {
+          const id = notes[nIdx + 1].id
+          return { selection: { ...selection, noteId: id, cursorNoteId: id } }
+        }
         if (mIdx < measures.length - 1) {
           const next = measures[mIdx + 1]
           const nextNotes = next.notesByStaff[selection.staffId] ?? []
-          return { selection: { ...selection, measureId: next.id, noteId: nextNotes[0]?.id ?? null } }
+          const id = nextNotes[0]?.id ?? null
+          return { selection: { ...selection, measureId: next.id, noteId: id, cursorNoteId: id } }
         }
       }
       if (direction === 'left') {
-        if (nIdx > 0)  return { selection: { ...selection, noteId: notes[nIdx - 1].id } }
-        if (nIdx === 0) return { selection: { ...selection, noteId: null } }
+        if (nIdx > 0) {
+          const id = notes[nIdx - 1].id
+          return { selection: { ...selection, noteId: id, cursorNoteId: id } }
+        }
+        if (nIdx === 0) return { selection: { ...selection, noteId: null, cursorNoteId: null } }
         if (mIdx > 0) {
           const prev = measures[mIdx - 1]
           const prevNotes = prev.notesByStaff[selection.staffId] ?? []
-          return { selection: { ...selection, measureId: prev.id, noteId: prevNotes[prevNotes.length - 1]?.id ?? null } }
+          const id = prevNotes[prevNotes.length - 1]?.id ?? null
+          return { selection: { ...selection, measureId: prev.id, noteId: id, cursorNoteId: id } }
         }
       }
       return s
@@ -263,18 +288,23 @@ export const useScoreStore = create(
           // Click-to-insert: place at a specific index within the measure.
           const idx = Math.max(0, Math.min(overrides.insertIndex, notes.length))
           newNotes = [...notes.slice(0, idx), newNote, ...notes.slice(idx)]
-        } else if (!selection.noteId) {
-          newNotes = [...notes, newNote]
         } else {
-          const idx = notes.findIndex((n) => n.id === selection.noteId)
-          newNotes = [...notes.slice(0, idx + 1), newNote, ...notes.slice(idx + 1)]
+          // Keyboard entry: insert after selected note, or after cursorNoteId if only cursor is set,
+          // or at end if there is no anchor at all.
+          const anchorId = selection.noteId ?? selection.cursorNoteId
+          const idx = anchorId ? notes.findIndex((n) => n.id === anchorId) : -1
+          if (idx === -1) {
+            newNotes = [...notes, newNote]
+          } else {
+            newNotes = [...notes.slice(0, idx + 1), newNote, ...notes.slice(idx + 1)]
+          }
         }
         return { ...m, notesByStaff: { ...m.notesByStaff, [staffId]: newNotes } }
       })
 
       return {
         measures: newMeasures,
-        selection: { measureId, staffId, noteId: newId },
+        selection: { measureId, staffId, noteId: newId, cursorNoteId: newId },
         history: { past: [...s.history.past, snap], future: [] },
       }
     })
@@ -297,7 +327,7 @@ export const useScoreStore = create(
 
       return {
         measures: newMeasures,
-        selection: { ...selection, noteId: prevNoteId },
+        selection: { ...selection, noteId: prevNoteId, cursorNoteId: prevNoteId },
         history: { past: [...s.history.past, snap], future: [] },
       }
     }),
@@ -351,7 +381,7 @@ export const useScoreStore = create(
       const newMeasure = emptyMeasure(staveIds)
       return {
         measures: [...s.measures, newMeasure],
-        selection: { ...s.selection, measureId: newMeasure.id, noteId: null },
+        selection: { ...s.selection, measureId: newMeasure.id, noteId: null, cursorNoteId: null },
         history: { past: [...s.history.past, snap], future: [] },
       }
     }),
@@ -364,7 +394,7 @@ export const useScoreStore = create(
       const last = newMeasures[newMeasures.length - 1]
       return {
         measures: newMeasures,
-        selection: { ...s.selection, measureId: last.id, noteId: null },
+        selection: { ...s.selection, measureId: last.id, noteId: null, cursorNoteId: null },
         history: { past: [...s.history.past, snap], future: [] },
       }
     }),
@@ -416,7 +446,7 @@ export const useScoreStore = create(
       meta:      data.meta,
       staves:    data.staves,
       measures:  data.measures,
-      selection: { measureId: data.measures[0]?.id ?? null, staffId: data.staves[0]?.id ?? null, noteId: null },
+      selection: { measureId: data.measures[0]?.id ?? null, staffId: data.staves[0]?.id ?? null, noteId: null, cursorNoteId: null },
       inputState: { duration: 'q', accidental: null, octave: 4, dotted: false },
       history:   { past: [], future: [] },
     })
@@ -459,7 +489,7 @@ export const useScoreStore = create(
       ],
       inputState: { duration: 'q', accidental: null, octave: 4, dotted: false },
       measures: [{ id: mid, notesByStaff: { [sid1]: [], [sid2]: [] } }],
-      selection: { measureId: mid, staffId: sid1, noteId: null },
+      selection: { measureId: mid, staffId: sid1, noteId: null, cursorNoteId: null },
       history: { past: [], future: [] },
     })
   },

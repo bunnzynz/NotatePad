@@ -96,8 +96,9 @@ export default function ScoreCanvas() {
   const staves       = useScoreStore((s) => s.staves)
   const meta         = useScoreStore((s) => s.meta)
   const selection    = useScoreStore((s) => s.selection)
-  const setSelection = useScoreStore((s) => s.setSelection)
-  const insertNote   = useScoreStore((s) => s.insertNote)
+  const setSelection      = useScoreStore((s) => s.setSelection)
+  const setCursorPosition = useScoreStore((s) => s.setCursorPosition)
+  const insertNote        = useScoreStore((s) => s.insertNote)
 
   const pageRefs      = useRef([])
   const notePositions = useRef({})
@@ -271,9 +272,13 @@ export default function ScoreCanvas() {
           const cursorTopY    = cursorOriginY + VEX_HEADROOM
           let cursorX = null
 
-          if (selection.noteId && notePositions.current[selection.noteId]?.pageIdx === pi) {
-            cursorX = notePositions.current[selection.noteId].x + 16
-          } else {
+          // Use the selected note if there is one; otherwise fall back to cursorNoteId
+          // (which persists after Escape / left-click empty space so cursor doesn't jump to measure start).
+          const anchorId = selection.noteId ?? selection.cursorNoteId
+          console.log('[cursor]', { noteId: selection.noteId, cursorNoteId: selection.cursorNoteId, anchorId, pos: notePositions.current[anchorId] })
+          if (anchorId && notePositions.current[anchorId]?.pageIdx === pi) {
+            cursorX = notePositions.current[anchorId].x + 16
+          } else if (!anchorId) {
             const mInfo = measureInfo.current[selection.measureId]
               ?.find(i => i.pageIdx === pi && i.staffId === selection.staffId)
             if (mInfo) {
@@ -350,10 +355,14 @@ export default function ScoreCanvas() {
     if (closest) { setSelection(closest.measureId, closest.staffId, closest.noteId); return }
     if (!hitStaff || !hitMeasureId) return
 
-    // Clicking empty space switches to this stave/measure but clears any note selection,
-    // so toolbar controls arm for the next insertion rather than editing an existing note.
-    setSelection(hitMeasureId, hitStaff.staffId, null)
-  }, [setSelection])
+    // Clicking empty space: clear note selection so toolbar arms for next insert,
+    // but park the cursor at the note just to the left of the click (or null if before all notes).
+    const notesInMeasure = Object.values(notePositions.current)
+      .filter(p => p.measureId === hitMeasureId && p.staffId === hitStaff.staffId && p.pageIdx === pi)
+      .sort((a, b) => a.x - b.x)
+    const anchorNote = notesInMeasure.filter(p => p.x < clickX).pop() ?? null
+    setCursorPosition(hitMeasureId, hitStaff.staffId, anchorNote?.noteId ?? null)
+  }, [setSelection, setCursorPosition])
 
   // ── Right click → insert note at clicked pitch ────────────────────────────
 

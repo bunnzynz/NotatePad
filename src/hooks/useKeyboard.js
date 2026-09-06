@@ -31,11 +31,10 @@ export function useKeyboard() {
       // Actually octave uses Ctrl — let's handle them before the ctrl guard.
       // (Re-check: already handled above via ctrl guard — so add them here separately)
 
-      // Escape — clear note selection so toolbar arms for next insert rather than editing
+      // Escape — clear note selection; cursor line stays put so it doesn't jump to measure start
       if (key === 'Escape') {
         e.preventDefault()
-        const s = store.selection
-        store.setSelection(s.measureId, s.staffId, null)
+        store.clearNoteSelection()
         return
       }
 
