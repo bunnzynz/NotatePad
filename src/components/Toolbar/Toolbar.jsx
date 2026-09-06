@@ -20,31 +20,67 @@ const CLEF_OPTIONS = [
 ]
 
 export default function Toolbar() {
-  const undo           = useScoreStore((s) => s.undo)
-  const redo           = useScoreStore((s) => s.redo)
-  const addMeasure     = useScoreStore((s) => s.addMeasure)
-  const removeMeasure  = useScoreStore((s) => s.removeMeasure)
-  const setMeta        = useScoreStore((s) => s.setMeta)
-  const setDuration    = useScoreStore((s) => s.setDuration)
-  const toggleAcc      = useScoreStore((s) => s.toggleAccidental)
-  const toggleDotted   = useScoreStore((s) => s.toggleDotted)
-  const setOctave      = useScoreStore((s) => s.setOctave)
-  const addStaff       = useScoreStore((s) => s.addStaff)
-  const removeStaff    = useScoreStore((s) => s.removeStaff)
-  const setStaffClef   = useScoreStore((s) => s.setStaffClef)
-  const setActiveStaff = useScoreStore((s) => s.setActiveStaff)
-  const inputState     = useScoreStore((s) => s.inputState)
-  const meta           = useScoreStore((s) => s.meta)
-  const staves         = useScoreStore((s) => s.staves)
-  const selection      = useScoreStore((s) => s.selection)
-  const measures       = useScoreStore((s) => s.measures)
+  const undo             = useScoreStore((s) => s.undo)
+  const redo             = useScoreStore((s) => s.redo)
+  const addMeasure       = useScoreStore((s) => s.addMeasure)
+  const removeMeasure    = useScoreStore((s) => s.removeMeasure)
+  const setMeta          = useScoreStore((s) => s.setMeta)
+  const setDuration      = useScoreStore((s) => s.setDuration)
+  const toggleAcc        = useScoreStore((s) => s.toggleAccidental)
+  const toggleDotted     = useScoreStore((s) => s.toggleDotted)
+  const setOctave        = useScoreStore((s) => s.setOctave)
+  const shiftNoteOctave  = useScoreStore((s) => s.shiftNoteOctave)
+  const addStaff         = useScoreStore((s) => s.addStaff)
+  const removeStaff      = useScoreStore((s) => s.removeStaff)
+  const setStaffClef     = useScoreStore((s) => s.setStaffClef)
+  const setActiveStaff   = useScoreStore((s) => s.setActiveStaff)
+  const loadScore        = useScoreStore((s) => s.loadScore)
+  const inputState       = useScoreStore((s) => s.inputState)
+  const meta             = useScoreStore((s) => s.meta)
+  const staves           = useScoreStore((s) => s.staves)
+  const selection        = useScoreStore((s) => s.selection)
+  const measures         = useScoreStore((s) => s.measures)
 
-  const activeMeasure = measures.find((m) => m.id === selection.measureId)
-  const timeSigStr    = `${meta.timeSignature[0]}/${meta.timeSignature[1]}`
+  const activeMeasure  = measures.find((m) => m.id === selection.measureId)
+  const timeSigStr     = `${meta.timeSignature[0]}/${meta.timeSignature[1]}`
+  const selectedNote   = activeMeasure?.notesByStaff[selection.staffId]?.find((n) => n.id === selection.noteId)
+  const displayOctave  = selectedNote ? selectedNote.octave : inputState.octave
 
   function handleTimeSig(str) {
     const [n, d] = str.split('/').map(Number)
     setMeta({ timeSignature: [n, d] })
+  }
+
+  function handleOctaveDown() {
+    selectedNote ? shiftNoteOctave('down') : setOctave(inputState.octave - 1)
+  }
+  function handleOctaveUp() {
+    selectedNote ? shiftNoteOctave('up') : setOctave(inputState.octave + 1)
+  }
+
+  function handleSave() {
+    const data = JSON.stringify({ meta, staves, measures }, null, 2)
+    const blob = new Blob([data], { type: 'application/json' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `${meta.title || 'Untitled Score'}.notatePad`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function handleOpen(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result)
+        if (data.measures && data.staves && data.meta) loadScore(data)
+      } catch { /* ignore bad files */ }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
   }
 
   return (
@@ -92,10 +128,10 @@ export default function Toolbar() {
 
       {/* Octave */}
       <div className={styles.group} role="group" aria-label="Octave">
-        <span className={styles.label}>Oct</span>
-        <button className={styles.btn} title="Octave down (Ctrl+↓)" onClick={() => setOctave(inputState.octave - 1)}>↓</button>
-        <span className={styles.octaveDisplay} aria-live="polite">{inputState.octave}</span>
-        <button className={styles.btn} title="Octave up (Ctrl+↑)"   onClick={() => setOctave(inputState.octave + 1)}>↑</button>
+        <span className={styles.label} title={selectedNote ? 'Selected note octave' : 'Next note octave'}>Oct</span>
+        <button className={styles.btn} title="Octave down" onClick={handleOctaveDown}>↓</button>
+        <span className={styles.octaveDisplay} aria-live="polite">{displayOctave}</span>
+        <button className={styles.btn} title="Octave up"   onClick={handleOctaveUp}>↑</button>
       </div>
 
       <div className={styles.divider} aria-hidden="true" />
@@ -186,6 +222,17 @@ export default function Toolbar() {
           disabled={measures.length <= 1}
           title="Remove current bar"
         >−Bar</button>
+      </div>
+
+      <div className={styles.divider} aria-hidden="true" />
+
+      {/* File */}
+      <div className={styles.group} role="group" aria-label="File">
+        <button className={styles.btn} onClick={handleSave} title="Save score to file">Save</button>
+        <label className={styles.btn} title="Open score from file" style={{ cursor: 'pointer' }}>
+          Open
+          <input type="file" accept=".notatePad,application/json" onChange={handleOpen} style={{ display: 'none' }} />
+        </label>
       </div>
 
       <div className={styles.spacer} />

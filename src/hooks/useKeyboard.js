@@ -64,6 +64,14 @@ export function useKeyboard() {
       if (key === 'ArrowLeft')  { e.preventDefault(); store.moveSelection('left');  return }
       if (key === 'ArrowRight') { e.preventDefault(); store.moveSelection('right'); return }
 
+      // Pitch adjustment (only when a note is selected)
+      if (key === 'ArrowUp' && store.selection.noteId) {
+        e.preventDefault(); store.shiftNoteStep('up'); return
+      }
+      if (key === 'ArrowDown' && store.selection.noteId) {
+        e.preventDefault(); store.shiftNoteStep('down'); return
+      }
+
       // Delete selected note
       if (key === 'Delete' || key === 'Backspace') {
         e.preventDefault()
@@ -79,8 +87,16 @@ export function useKeyboard() {
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
 
       const store = useScoreStore.getState()
-      if (e.key === 'ArrowUp')   { e.preventDefault(); store.setOctave(store.inputState.octave + 1); return }
-      if (e.key === 'ArrowDown') { e.preventDefault(); store.setOctave(store.inputState.octave - 1); return }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        store.selection.noteId ? store.shiftNoteOctave('up') : store.setOctave(store.inputState.octave + 1)
+        return
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        store.selection.noteId ? store.shiftNoteOctave('down') : store.setOctave(store.inputState.octave - 1)
+        return
+      }
     }
 
     window.addEventListener('keydown', onKeyDownCtrl)

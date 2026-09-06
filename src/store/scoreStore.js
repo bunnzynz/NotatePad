@@ -1,6 +1,8 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import { v4 as uuid } from 'uuid'
+
+const DIATONIC = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
 
 function snapshot(state) {
   return JSON.parse(JSON.stringify({ measures: state.measures, staves: state.staves }))
@@ -223,6 +225,59 @@ export const useScoreStore = create(
       }
     }),
 
+  // --- Pitch adjustment ---
+  shiftNoteStep: (direction) =>
+    set((s) => {
+      const { selection, measures } = s
+      if (!selection.noteId) return s
+      const snap = snapshot(s)
+      const delta = direction === 'up' ? 1 : -1
+      const newMeasures = measures.map((m) => {
+        if (m.id !== selection.measureId) return m
+        const notes = m.notesByStaff[selection.staffId] ?? []
+        const newNotes = notes.map((n) => {
+          if (n.id !== selection.noteId || n.isRest) return n
+          let idx = DIATONIC.indexOf(n.pitch) + delta
+          let oct = n.octave
+          if (idx >= 7) { idx = 0; oct++ }
+          if (idx < 0)  { idx = 6; oct-- }
+          return { ...n, pitch: DIATONIC[idx], octave: Math.max(1, Math.min(8, oct)) }
+        })
+        return { ...m, notesByStaff: { ...m.notesByStaff, [selection.staffId]: newNotes } }
+      })
+      return { measures: newMeasures, history: { past: [...s.history.past, snap], future: [] } }
+    }),
+
+  shiftNoteOctave: (direction) =>
+    set((s) => {
+      const { selection, measures } = s
+      if (!selection.noteId) return s
+      const snap = snapshot(s)
+      const delta = direction === 'up' ? 1 : -1
+      const newMeasures = measures.map((m) => {
+        if (m.id !== selection.measureId) return m
+        const notes = m.notesByStaff[selection.staffId] ?? []
+        const newNotes = notes.map((n) => {
+          if (n.id !== selection.noteId || n.isRest) return n
+          return { ...n, octave: Math.max(1, Math.min(8, n.octave + delta)) }
+        })
+        return { ...m, notesByStaff: { ...m.notesByStaff, [selection.staffId]: newNotes } }
+      })
+      return { measures: newMeasures, history: { past: [...s.history.past, snap], future: [] } }
+    }),
+
+  // --- Load from file ---
+  loadScore: (data) => {
+    set({
+      meta:      data.meta,
+      staves:    data.staves,
+      measures:  data.measures,
+      selection: { measureId: data.measures[0]?.id ?? null, staffId: data.staves[0]?.id ?? null, noteId: null },
+      inputState: { duration: 'q', accidental: null, octave: 4, dotted: false },
+      history:   { past: [], future: [] },
+    })
+  },
+
   // --- Undo / Redo ---
   undo: () =>
     set((s) => {
@@ -267,6 +322,7 @@ export const useScoreStore = create(
 }),
 {
   name: 'notatepad-score',
+  storage: createJSONStorage(() => sessionStorage),
   partialize: (state) => ({
     meta:       state.meta,
     staves:     state.staves,
