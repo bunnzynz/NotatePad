@@ -76,10 +76,9 @@ export function computeLayout(measures, staves, meta) {
   if (curSys.length > 0) systems.push(curSys)
 
   // ── 2. Justify widths so each system (except last) fills CONTENT_W ────────
-  const justified = systems.map((sys, si) => {
-    const isLast  = si === systems.length - 1
+  const justified = systems.map((sys) => {
     const totalW  = sys.reduce((s, m) => s + m.w, 0)
-    const scale   = isLast ? 1 : CONTENT_W / totalW
+    const scale   = CONTENT_W / totalW
     let x = 0
     return sys.map((item, idx) => {
       const width = Math.round(item.w * scale)
