@@ -9,6 +9,12 @@ import {
 } from '../../notation/layout.js'
 import styles from './ScoreCanvas.module.css'
 
+// VexFlow places its stave's top line at (y + VEX_HEADROOM), not at y itself.
+// space_above_staff_ln=4 × spacing_between_lines=10px → 40px headroom.
+// STAVE_LINE_H is the distance from top line to bottom line (4 gaps × 10px).
+const VEX_HEADROOM   = 40
+const STAVE_LINE_H   = 40
+
 // ── Pitch helpers ─────────────────────────────────────────────────────────────
 
 const DIATONIC = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
@@ -20,9 +26,9 @@ const CLEF_TOP = {
   tenor:  { idx: 2, oct: 4 },
 }
 
-function yToPitch(clickY, staveTopY, clef) {
+function yToPitch(clickY, topLineY, clef) {
   const ref  = CLEF_TOP[clef] ?? CLEF_TOP.treble
-  const step = Math.round((clickY - staveTopY) / 5)
+  const step = Math.round((clickY - topLineY) / 5)
   let ni = ref.idx - step, oct = ref.oct
   while (ni < 0)  { ni += 7; oct-- }
   while (ni >= 7) { ni -= 7; oct++ }
@@ -150,16 +156,18 @@ export default function ScoreCanvas() {
         // Active system highlight — drawn into bgGroup so it's behind all staves
         const isActiveSys = system.measures.some(ml => ml.measure.id === selection.measureId)
         if (isActiveSys) {
+          const hlTop    = sysY + VEX_HEADROOM - 8
+          const hlBottom = sysY + (staves.length - 1) * (STAVE_H + STAFF_GAP) + VEX_HEADROOM + STAVE_LINE_H + 8
           bgGroup.appendChild(mkRect(
-            sysX - 4, sysY - SYS_ABOVE,
-            CONTENT_W + 8, sysH,
+            sysX - 4, hlTop,
+            CONTENT_W + 8, hlBottom - hlTop,
             'var(--color-accent-light)', 4
           ))
         }
 
         // Measure number
         if (system.firstMeasureNumber > 1) {
-          const mn = mkText(`${system.firstMeasureNumber}`, sysX, sysY - SYS_ABOVE + 12, '10', '400', 'start')
+          const mn = mkText(`${system.firstMeasureNumber}`, sysX, sysY + VEX_HEADROOM - 6, '10', '400', 'start')
           mn.setAttribute('fill', '#999')
           svg.appendChild(mn)
         }
@@ -168,11 +176,13 @@ export default function ScoreCanvas() {
 
         // ── Staff rows ────────────────────────────────────────────────────
         staves.forEach((staff, sti) => {
-          const staveTopY = sysY + sti * (STAVE_H + STAFF_GAP)
+          const staveTopY  = sysY + sti * (STAVE_H + STAFF_GAP)
+          const topLineY   = staveTopY + VEX_HEADROOM
+          const bottomLineY = topLineY + STAVE_LINE_H
 
           staffInfo.current.push({
             staffId: staff.id, pageIdx: pi, systemIdx: si,
-            y: staveTopY, bottom: staveTopY + STAVE_H,
+            y: topLineY, bottom: bottomLineY,
           })
 
           system.measures.forEach((ml, mi) => {
@@ -248,8 +258,9 @@ export default function ScoreCanvas() {
 
         // Cursor line — appended to svg (after VexFlow's root <g>) so it's on top
         if (selection.measureId && isActiveSys) {
-          const selStaffIdx = staves.findIndex(s => s.id === selection.staffId)
-          const cursorStaveY = sysY + (selStaffIdx >= 0 ? selStaffIdx : 0) * (STAVE_H + STAFF_GAP)
+          const selStaffIdx  = staves.findIndex(s => s.id === selection.staffId)
+          const cursorOriginY = sysY + (selStaffIdx >= 0 ? selStaffIdx : 0) * (STAVE_H + STAFF_GAP)
+          const cursorTopY    = cursorOriginY + VEX_HEADROOM
           let cursorX = null
 
           if (selection.noteId && notePositions.current[selection.noteId]?.pageIdx === pi) {
@@ -266,8 +277,8 @@ export default function ScoreCanvas() {
           if (cursorX !== null) {
             const cur = svgEl('line')
             cur.setAttribute('x1', cursorX); cur.setAttribute('x2', cursorX)
-            cur.setAttribute('y1', cursorStaveY - 4)
-            cur.setAttribute('y2', cursorStaveY + STAVE_H + 4)
+            cur.setAttribute('y1', cursorTopY - 4)
+            cur.setAttribute('y2', cursorTopY + STAVE_LINE_H + 4)
             cur.setAttribute('stroke', 'var(--color-accent)')
             cur.setAttribute('stroke-width', '2')
             cur.setAttribute('stroke-linecap', 'round')
