@@ -336,34 +336,9 @@ export default function ScoreCanvas() {
     return { closest, hitStaff, hitMeasureId }
   }
 
-  // ── Left click → insert note ───────────────────────────────────────────────
+  // ── Left click → select / navigate ───────────────────────────────────────
 
   const handlePageClick = useCallback((e, pi) => {
-    const svg = pageRefs.current[pi]?.querySelector('svg')
-    if (!svg) return
-    const rect   = svg.getBoundingClientRect()
-    const clickX = e.clientX - rect.left
-    const clickY = e.clientY - rect.top
-
-    const { closest, hitStaff, hitMeasureId } = hitTest(pi, clickX, clickY)
-
-    // Clicking directly on an existing note selects it instead of inserting
-    if (closest) { setSelection(closest.measureId, closest.staffId, closest.noteId); return }
-    if (!hitStaff || !hitMeasureId) return
-
-    const notesInMeasure = Object.values(notePositions.current)
-      .filter(p => p.measureId === hitMeasureId && p.staffId === hitStaff.staffId && p.pageIdx === pi)
-      .sort((a, b) => a.x - b.x)
-
-    const { pitch, octave } = yToPitch(clickY, hitStaff.y, hitStaff.clef)
-    const insertIndex = notesInMeasure.filter(p => p.x < clickX).length
-    insertNote({ pitch, octave, measureId: hitMeasureId, staffId: hitStaff.staffId, insertIndex })
-  }, [setSelection, insertNote])
-
-  // ── Right click → position cursor / select only (no insert) ──────────────
-
-  const handlePageRightClick = useCallback((e, pi) => {
-    e.preventDefault()  // suppress browser context menu
     const svg = pageRefs.current[pi]?.querySelector('svg')
     if (!svg) return
     const rect   = svg.getBoundingClientRect()
@@ -386,6 +361,28 @@ export default function ScoreCanvas() {
     setSelection(hitMeasureId, hitStaff.staffId, anchorNoteId)
   }, [setSelection])
 
+  // ── Right click → insert note at clicked pitch ────────────────────────────
+
+  const handlePageRightClick = useCallback((e, pi) => {
+    e.preventDefault()  // suppress browser context menu
+    const svg = pageRefs.current[pi]?.querySelector('svg')
+    if (!svg) return
+    const rect   = svg.getBoundingClientRect()
+    const clickX = e.clientX - rect.left
+    const clickY = e.clientY - rect.top
+
+    const { hitStaff, hitMeasureId } = hitTest(pi, clickX, clickY)
+    if (!hitStaff || !hitMeasureId) return
+
+    const notesInMeasure = Object.values(notePositions.current)
+      .filter(p => p.measureId === hitMeasureId && p.staffId === hitStaff.staffId && p.pageIdx === pi)
+      .sort((a, b) => a.x - b.x)
+
+    const { pitch, octave } = yToPitch(clickY, hitStaff.y, hitStaff.clef)
+    const insertIndex = notesInMeasure.filter(p => p.x < clickX).length
+    insertNote({ pitch, octave, measureId: hitMeasureId, staffId: hitStaff.staffId, insertIndex })
+  }, [insertNote])
+
   const isEmpty = measures.length === 1 && staves.every(st => (measures[0].notesByStaff[st.id] ?? []).length === 0)
 
   return (
@@ -402,7 +399,7 @@ export default function ScoreCanvas() {
       ))}
       {isEmpty && (
         <p className={styles.hint}>
-          Left-click the staff to add a note · Right-click to position cursor without adding
+          Right-click the staff to place a note · Left-click to select
         </p>
       )}
     </div>
