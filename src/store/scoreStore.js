@@ -83,8 +83,6 @@ export const useScoreStore = create(
     { id: secondStaffId, clef: 'bass',   label: '' },
   ],
 
-  noteInput: false,   // true = clicking the stave inserts notes; false = navigate/select only
-
   inputState: {
     duration: 'q',
     accidental: null,
@@ -101,9 +99,6 @@ export const useScoreStore = create(
   },
 
   history: { past: [], future: [] },
-
-  // --- Note input mode ---
-  setNoteInput: (on) => set({ noteInput: on }),
 
   // --- Meta ---
   setMeta: (updates) => set((s) => ({ meta: { ...s.meta, ...updates } })),

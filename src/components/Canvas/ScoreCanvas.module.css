@@ -21,11 +21,6 @@
 
 .pageContent {
   width: 100%;
-  cursor: default;
-}
-
-.pageContentInput {
-  width: 100%;
   cursor: crosshair;
 }
 

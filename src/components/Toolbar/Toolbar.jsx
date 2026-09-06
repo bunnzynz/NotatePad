@@ -20,8 +20,6 @@ const CLEF_OPTIONS = [
 ]
 
 export default function Toolbar() {
-  const noteInput        = useScoreStore((s) => s.noteInput)
-  const setNoteInput     = useScoreStore((s) => s.setNoteInput)
   const undo             = useScoreStore((s) => s.undo)
   const redo             = useScoreStore((s) => s.redo)
   const addMeasure       = useScoreStore((s) => s.addMeasure)
@@ -80,16 +78,6 @@ export default function Toolbar() {
 
   return (
     <div className={styles.toolbar} role="toolbar" aria-label="Notation tools">
-
-      {/* Note input mode toggle */}
-      <button
-        className={`${styles.btn} ${noteInput ? styles.inputActive : ''}`}
-        aria-pressed={noteInput}
-        title={noteInput ? 'Note input ON — click to switch to navigate mode (N / Esc)' : 'Note input OFF — click to start adding notes (N)'}
-        onClick={() => setNoteInput(!noteInput)}
-      >✏</button>
-
-      <div className={styles.divider} aria-hidden="true" />
 
       {/* History */}
       <div className={styles.group} role="group" aria-label="History">

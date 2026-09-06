@@ -31,18 +31,6 @@ export function useKeyboard() {
       // Actually octave uses Ctrl — let's handle them before the ctrl guard.
       // (Re-check: already handled above via ctrl guard — so add them here separately)
 
-      // Toggle note input mode
-      if (lower === 'n' && !e.altKey) {
-        e.preventDefault()
-        store.setNoteInput(!store.noteInput)
-        return
-      }
-      if (key === 'Escape') {
-        e.preventDefault()
-        store.setNoteInput(false)
-        return
-      }
-
       // Note letters A–G
       if (NOTE_LETTERS.has(lower) && !e.altKey) {
         e.preventDefault()
