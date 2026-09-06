@@ -96,6 +96,7 @@ export default function ScoreCanvas() {
   const staves       = useScoreStore((s) => s.staves)
   const meta         = useScoreStore((s) => s.meta)
   const selection    = useScoreStore((s) => s.selection)
+  const noteInput    = useScoreStore((s) => s.noteInput)
   const setSelection = useScoreStore((s) => s.setSelection)
   const insertNote   = useScoreStore((s) => s.insertNote)
 
@@ -340,17 +341,26 @@ export default function ScoreCanvas() {
     }
     if (!hitMeasureId) return
 
-    // 4. Compute pitch from the Y position of the click
-    const { pitch, octave } = yToPitch(clickY, hitStaff.y, hitStaff.clef)
+    // 4a. Navigate mode — just position the cursor, no insertion
+    const { noteInput: currentNoteInput } = useScoreStore.getState()
 
-    // 5. Compute insert position within the measure from the X position
     const notesInMeasure = Object.values(notePositions.current)
       .filter(p => p.measureId === hitMeasureId && p.staffId === hitStaff.staffId && p.pageIdx === pi)
       .sort((a, b) => a.x - b.x)
 
-    const insertIndex = notesInMeasure.filter(p => p.x < clickX).length
+    if (!currentNoteInput) {
+      // Position cursor at the note nearest to the left of the click
+      let anchorNoteId = null
+      for (const p of notesInMeasure) {
+        if (p.x < clickX) anchorNoteId = p.noteId
+      }
+      setSelection(hitMeasureId, hitStaff.staffId, anchorNoteId)
+      return
+    }
 
-    // 6. Insert the note — uses current inputState duration/accidental/dotted
+    // 4b. Input mode — insert a note at the clicked pitch and position
+    const { pitch, octave } = yToPitch(clickY, hitStaff.y, hitStaff.clef)
+    const insertIndex = notesInMeasure.filter(p => p.x < clickX).length
     insertNote({ pitch, octave, measureId: hitMeasureId, staffId: hitStaff.staffId, insertIndex })
   }, [setSelection, insertNote])
 
@@ -362,14 +372,16 @@ export default function ScoreCanvas() {
         <div key={pi} className={styles.page}>
           <div
             ref={el => { pageRefs.current[pi] = el }}
-            className={styles.pageContent}
+            className={noteInput ? styles.pageContentInput : styles.pageContent}
             onClick={(e) => handlePageClick(e, pi)}
           />
         </div>
       ))}
       {isEmpty && (
         <p className={styles.hint}>
-          Select a duration (1–6), then click anywhere on the staff to add a note there.
+          {noteInput
+            ? 'Input mode on — select a duration (W H Q 8 16 32), then click the staff to place a note.'
+            : 'Click ✏ in the toolbar (or press N) to start adding notes.'}
         </p>
       )}
     </div>

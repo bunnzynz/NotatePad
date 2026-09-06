@@ -70,6 +70,12 @@
   font-weight: 600;
 }
 
+.inputActive {
+  background: var(--color-accent) !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+
 .octaveDisplay {
   font-size: var(--font-size-sm);
   font-weight: 600;
