@@ -4,3 +4,8 @@ dist
 .env.local
 .DS_Store
 .claude
+
+# Local assets not part of the project
+blue-background.png
+inspo-screenshots/
+test-screenshots/
