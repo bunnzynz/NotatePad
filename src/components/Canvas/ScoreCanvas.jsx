@@ -74,6 +74,7 @@ function mkRect(x, y, w, h, fill, rx = 0) {
   r.setAttribute('x', x); r.setAttribute('y', y)
   r.setAttribute('width', w); r.setAttribute('height', h)
   r.setAttribute('fill', fill); r.setAttribute('rx', rx)
+  r.setAttribute('stroke', 'none')
   return r
 }
 
@@ -204,7 +205,7 @@ export default function ScoreCanvas() {
             try {
               let beats = 0
               const staveNotes = notes.map((note) => {
-                const sn = new StaveNote({ keys: [vexKey(note)], duration: vexDuration(note) })
+                const sn = new StaveNote({ keys: [vexKey(note)], duration: vexDuration(note), clef: staff.clef })
                 if (note.accidental && !note.isRest) sn.addModifier(new Accidental(note.accidental), 0)
 
                 const overflow = beats >= cap

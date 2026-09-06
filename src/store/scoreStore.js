@@ -55,10 +55,47 @@ export const useScoreStore = create(
   setMeta: (updates) => set((s) => ({ meta: { ...s.meta, ...updates } })),
 
   // --- Input state ---
-  setDuration:       (duration)  => set((s) => ({ inputState: { ...s.inputState, duration } })),
-  toggleAccidental:  (acc)       => set((s) => ({ inputState: { ...s.inputState, accidental: s.inputState.accidental === acc ? null : acc } })),
-  toggleDotted:      ()          => set((s) => ({ inputState: { ...s.inputState, dotted: !s.inputState.dotted } })),
-  setOctave:         (octave)    => set((s) => ({ inputState: { ...s.inputState, octave: Math.max(1, Math.min(8, octave)) } })),
+  setDuration: (duration) =>
+    set((s) => {
+      const newInput = { ...s.inputState, duration }
+      if (!s.selection.noteId) return { inputState: newInput }
+      const snap = snapshot(s)
+      const newMeasures = s.measures.map((m) => {
+        if (m.id !== s.selection.measureId) return m
+        const notes = m.notesByStaff[s.selection.staffId] ?? []
+        return { ...m, notesByStaff: { ...m.notesByStaff, [s.selection.staffId]: notes.map((n) => n.id === s.selection.noteId ? { ...n, duration } : n) } }
+      })
+      return { inputState: newInput, measures: newMeasures, history: { past: [...s.history.past, snap], future: [] } }
+    }),
+
+  toggleAccidental: (acc) =>
+    set((s) => {
+      const newAcc = s.inputState.accidental === acc ? null : acc
+      const newInput = { ...s.inputState, accidental: newAcc }
+      if (!s.selection.noteId) return { inputState: newInput }
+      const snap = snapshot(s)
+      const newMeasures = s.measures.map((m) => {
+        if (m.id !== s.selection.measureId) return m
+        const notes = m.notesByStaff[s.selection.staffId] ?? []
+        return { ...m, notesByStaff: { ...m.notesByStaff, [s.selection.staffId]: notes.map((n) => n.id === s.selection.noteId ? { ...n, accidental: n.accidental === acc ? null : acc } : n) } }
+      })
+      return { inputState: newInput, measures: newMeasures, history: { past: [...s.history.past, snap], future: [] } }
+    }),
+
+  toggleDotted: () =>
+    set((s) => {
+      const newInput = { ...s.inputState, dotted: !s.inputState.dotted }
+      if (!s.selection.noteId) return { inputState: newInput }
+      const snap = snapshot(s)
+      const newMeasures = s.measures.map((m) => {
+        if (m.id !== s.selection.measureId) return m
+        const notes = m.notesByStaff[s.selection.staffId] ?? []
+        return { ...m, notesByStaff: { ...m.notesByStaff, [s.selection.staffId]: notes.map((n) => n.id === s.selection.noteId ? { ...n, dotted: !n.dotted } : n) } }
+      })
+      return { inputState: newInput, measures: newMeasures, history: { past: [...s.history.past, snap], future: [] } }
+    }),
+
+  setOctave: (octave) => set((s) => ({ inputState: { ...s.inputState, octave: Math.max(1, Math.min(8, octave)) } })),
 
   // --- Staff management ---
   addStaff: (clef) =>
@@ -101,7 +138,14 @@ export const useScoreStore = create(
     })),
 
   setActiveStaff: (staffId) =>
-    set((s) => ({ selection: { ...s.selection, staffId, noteId: null } })),
+    set((s) => {
+      const staff = s.staves.find(st => st.id === staffId)
+      const octave = staff?.clef === 'bass' ? 2 : 4
+      return {
+        selection:  { ...s.selection, staffId, noteId: null },
+        inputState: { ...s.inputState, octave },
+      }
+    }),
 
   // --- Selection / cursor ---
   setSelection: (measureId, staffId, noteId) =>
