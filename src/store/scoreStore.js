@@ -108,7 +108,7 @@ export const useScoreStore = create(
   // --- Input state ---
   setDuration: (duration) =>
     set((s) => {
-      const newInput = { ...s.inputState, duration }
+      const newInput = { ...s.inputState, duration, isRest: false }
       if (!s.selection.noteId) return { inputState: newInput }
       const snap = snapshot(s)
       const newMeasures = s.measures.map((m) => {
@@ -150,6 +150,30 @@ export const useScoreStore = create(
 
   toggleRestMode: () =>
     set((s) => ({ inputState: { ...s.inputState, isRest: !s.inputState.isRest } })),
+
+  // Arm rest mode with a duration, and convert the selected note to a rest if one is selected.
+  setRestDuration: (duration) =>
+    set((s) => {
+      const newInput = { ...s.inputState, duration, isRest: true }
+      if (!s.selection.noteId) return { inputState: newInput }
+      const snap = snapshot(s)
+      const newMeasures = s.measures.map((m) => {
+        if (m.id !== s.selection.measureId) return m
+        const notes = m.notesByStaff[s.selection.staffId] ?? []
+        return {
+          ...m,
+          notesByStaff: {
+            ...m.notesByStaff,
+            [s.selection.staffId]: notes.map((n) =>
+              n.id === s.selection.noteId
+                ? { ...n, duration, isRest: true, accidental: null }
+                : n
+            ),
+          },
+        }
+      })
+      return { inputState: newInput, measures: newMeasures, history: { past: [...s.history.past, snap], future: [] } }
+    }),
 
   // --- Staff management ---
   addStaff: (clef) =>

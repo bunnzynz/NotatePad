@@ -1,49 +1,102 @@
-.toolbar {
+/* ── Ribbon shell ─────────────────────────────────────────── */
+
+.ribbon {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-4);
-  min-height: var(--toolbar-height);
-  row-gap: var(--space-2);
+  flex-direction: column;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
   user-select: none;
 }
 
+/* ── Tab strip ────────────────────────────────────────────── */
+
+.tabStrip {
+  display: flex;
+  padding: 0 var(--space-3);
+  gap: 2px;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tab {
+  padding: 5px 14px;
+  font-size: var(--font-size-xs);
+  font-family: var(--font-ui);
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  cursor: pointer;
+  position: relative;
+  bottom: -1px;
+  transition: background 0.1s, color 0.1s;
+}
+
+.tab:hover {
+  color: var(--color-text);
+  background: var(--color-surface-alt);
+}
+
+.tab[aria-selected='true'] {
+  background: var(--color-surface);
+  color: var(--color-accent);
+  border-color: var(--color-border);
+  font-weight: 600;
+}
+
+/* ── Ribbon content ───────────────────────────────────────── */
+
+.ribbonContent {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  padding: var(--space-2) var(--space-3);
+  gap: 0;
+  min-height: 58px;
+}
+
+/* ── Groups ───────────────────────────────────────────────── */
+
 .group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px var(--space-3) var(--space-1);
+  border-right: 1px solid var(--color-border);
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.group:last-child {
+  border-right: none;
+}
+
+.groupButtons {
   display: flex;
   align-items: center;
   gap: 2px;
-  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
-.divider {
-  width: 1px;
-  height: 24px;
-  background: var(--color-border);
-  margin: 0 var(--space-2);
-  flex-shrink: 0;
-}
-
-.spacer {
-  flex: 1;
-}
-
-.label {
-  font-size: var(--font-size-xs);
+.groupLabel {
+  font-size: 10px;
   color: var(--color-text-muted);
-  padding: 0 var(--space-1);
-  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
 }
+
+/* ── Buttons ──────────────────────────────────────────────── */
 
 .btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 32px;
-  height: 30px;
+  min-width: 28px;
+  height: 28px;
   padding: 0 var(--space-2);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
@@ -70,17 +123,17 @@
   font-weight: 600;
 }
 
-
-.octaveDisplay {
-  font-size: var(--font-size-sm);
+/* Rest buttons use a warm tint when pressed to visually separate from note buttons */
+.restBtn[aria-pressed='true'] {
+  background: #FDF3E7;
+  color: #B07030;
   font-weight: 600;
-  color: var(--color-text);
-  min-width: 18px;
-  text-align: center;
 }
 
+/* ── Selects ──────────────────────────────────────────────── */
+
 .select {
-  height: 28px;
+  height: 26px;
   padding: 0 4px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -94,4 +147,13 @@
 .select:focus {
   outline: 2px solid var(--color-accent);
   outline-offset: 1px;
+}
+
+/* ── Inline labels ────────────────────────────────────────── */
+
+.label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  padding: 0 2px;
+  flex-shrink: 0;
 }
