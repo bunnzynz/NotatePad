@@ -275,7 +275,6 @@ export default function ScoreCanvas() {
           // Use the selected note if there is one; otherwise fall back to cursorNoteId
           // (which persists after Escape / left-click empty space so cursor doesn't jump to measure start).
           const anchorId = selection.noteId ?? selection.cursorNoteId
-          console.log('[cursor]', { noteId: selection.noteId, cursorNoteId: selection.cursorNoteId, anchorId, pos: notePositions.current[anchorId] })
           if (anchorId && notePositions.current[anchorId]?.pageIdx === pi) {
             cursorX = notePositions.current[anchorId].x + 16
           } else if (!anchorId) {
