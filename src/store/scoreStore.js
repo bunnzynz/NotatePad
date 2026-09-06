@@ -88,6 +88,7 @@ export const useScoreStore = create(
     accidental: null,
     octave: 4,
     dotted: false,
+    isRest: false,
   },
 
   measures: [{ id: firstMeasureId, notesByStaff: { [firstStaffId]: [], [secondStaffId]: [] } }],
@@ -146,6 +147,9 @@ export const useScoreStore = create(
     }),
 
   setOctave: (octave) => set((s) => ({ inputState: { ...s.inputState, octave: Math.max(1, Math.min(8, octave)) } })),
+
+  toggleRestMode: () =>
+    set((s) => ({ inputState: { ...s.inputState, isRest: !s.inputState.isRest } })),
 
   // --- Staff management ---
   addStaff: (clef) =>
@@ -447,7 +451,7 @@ export const useScoreStore = create(
       staves:    data.staves,
       measures:  data.measures,
       selection: { measureId: data.measures[0]?.id ?? null, staffId: data.staves[0]?.id ?? null, noteId: null, cursorNoteId: null },
-      inputState: { duration: 'q', accidental: null, octave: 4, dotted: false },
+      inputState: { duration: 'q', accidental: null, octave: 4, dotted: false, isRest: false },
       history:   { past: [], future: [] },
     })
   },
@@ -487,7 +491,7 @@ export const useScoreStore = create(
         { id: sid1, clef: 'treble', label: '' },
         { id: sid2, clef: 'bass',   label: '' },
       ],
-      inputState: { duration: 'q', accidental: null, octave: 4, dotted: false },
+      inputState: { duration: 'q', accidental: null, octave: 4, dotted: false, isRest: false },
       measures: [{ id: mid, notesByStaff: { [sid1]: [], [sid2]: [] } }],
       selection: { measureId: mid, staffId: sid1, noteId: null, cursorNoteId: null },
       history: { past: [], future: [] },

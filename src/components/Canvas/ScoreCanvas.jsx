@@ -96,6 +96,7 @@ export default function ScoreCanvas() {
   const staves       = useScoreStore((s) => s.staves)
   const meta         = useScoreStore((s) => s.meta)
   const selection    = useScoreStore((s) => s.selection)
+  const inputState        = useScoreStore((s) => s.inputState)
   const setSelection      = useScoreStore((s) => s.setSelection)
   const setCursorPosition = useScoreStore((s) => s.setCursorPosition)
   const insertNote        = useScoreStore((s) => s.insertNote)
@@ -211,7 +212,7 @@ export default function ScoreCanvas() {
                   duration: vexDuration(note),
                   clef: staff.clef,
                 })
-                if (note.dotted && !note.isRest) Dot.buildAndAttach([sn], { all: true })
+                if (note.dotted) Dot.buildAndAttach([sn], { all: true })
                 if (note.accidental && !note.isRest) sn.addModifier(new Accidental(note.accidental), 0)
 
                 const overflow = beats >= cap
@@ -380,10 +381,14 @@ export default function ScoreCanvas() {
       .filter(p => p.measureId === hitMeasureId && p.staffId === hitStaff.staffId && p.pageIdx === pi)
       .sort((a, b) => a.x - b.x)
 
-    const { pitch, octave } = yToPitch(clickY, hitStaff.y, hitStaff.clef)
     const insertIndex = notesInMeasure.filter(p => p.x < clickX).length
-    insertNote({ pitch, octave, measureId: hitMeasureId, staffId: hitStaff.staffId, insertIndex })
-  }, [insertNote])
+    if (inputState.isRest) {
+      insertNote({ isRest: true, measureId: hitMeasureId, staffId: hitStaff.staffId, insertIndex })
+    } else {
+      const { pitch, octave } = yToPitch(clickY, hitStaff.y, hitStaff.clef)
+      insertNote({ pitch, octave, measureId: hitMeasureId, staffId: hitStaff.staffId, insertIndex })
+    }
+  }, [insertNote, inputState])
 
   const isEmpty = measures.length === 1 && staves.every(st => (measures[0].notesByStaff[st.id] ?? []).length === 0)
 

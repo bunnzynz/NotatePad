@@ -29,6 +29,7 @@ export default function Toolbar() {
   const toggleAcc        = useScoreStore((s) => s.toggleAccidental)
   const clearAcc         = useScoreStore((s) => s.clearAccidental)
   const toggleDotted     = useScoreStore((s) => s.toggleDotted)
+  const toggleRestMode   = useScoreStore((s) => s.toggleRestMode)
   const shiftNoteStep    = useScoreStore((s) => s.shiftNoteStep)
   const shiftNoteOctave  = useScoreStore((s) => s.shiftNoteOctave)
   const addStaff         = useScoreStore((s) => s.addStaff)
@@ -106,45 +107,52 @@ export default function Toolbar() {
           title="Dotted (.)"
           onClick={toggleDotted}
         >·</button>
+        <button
+          className={styles.btn}
+          aria-label="Rest (R)"
+          aria-pressed={inputState.isRest}
+          title="Rest (R)"
+          onClick={toggleRestMode}
+        >𝄽</button>
       </div>
 
       <div className={styles.divider} aria-hidden="true" />
 
-      {/* Accidentals */}
+      {/* Accidentals — disabled when rest mode is armed */}
       <div className={styles.group} role="group" aria-label="Accidentals">
-        <button className={styles.btn} aria-pressed={inputState.accidental === '#'} title="Sharp (+)" onClick={() => toggleAcc('#')}>♯</button>
-        <button className={styles.btn} aria-pressed={inputState.accidental === 'b'} title="Flat (−)"  onClick={() => toggleAcc('b')}>♭</button>
-        <button className={styles.btn} title="Remove accidental (=)" onClick={clearAcc}>♮</button>
+        <button className={styles.btn} aria-pressed={inputState.accidental === '#'} title="Sharp (+)" disabled={inputState.isRest} onClick={() => toggleAcc('#')}>♯</button>
+        <button className={styles.btn} aria-pressed={inputState.accidental === 'b'} title="Flat (−)"  disabled={inputState.isRest} onClick={() => toggleAcc('b')}>♭</button>
+        <button className={styles.btn} title="Remove accidental (=)" disabled={inputState.isRest} onClick={clearAcc}>♮</button>
       </div>
 
       <div className={styles.divider} aria-hidden="true" />
 
-      {/* Pitch nudge — only meaningful when a note is selected */}
+      {/* Pitch nudge — only meaningful when a pitched note is selected */}
       <div className={styles.group} role="group" aria-label="Move selected note">
         <span className={styles.label}>Step</span>
         <button
           className={styles.btn}
           title="Move note up one step (↑)"
-          disabled={!selectedNote}
+          disabled={!selectedNote || selectedNote.isRest}
           onClick={() => shiftNoteStep('up')}
         >↑</button>
         <button
           className={styles.btn}
           title="Move note down one step (↓)"
-          disabled={!selectedNote}
+          disabled={!selectedNote || selectedNote.isRest}
           onClick={() => shiftNoteStep('down')}
         >↓</button>
         <span className={styles.label}>Oct</span>
         <button
           className={styles.btn}
           title="Move note up one octave (Ctrl+↑)"
-          disabled={!selectedNote}
+          disabled={!selectedNote || selectedNote.isRest}
           onClick={() => shiftNoteOctave('up')}
         >↑</button>
         <button
           className={styles.btn}
           title="Move note down one octave (Ctrl+↓)"
-          disabled={!selectedNote}
+          disabled={!selectedNote || selectedNote.isRest}
           onClick={() => shiftNoteOctave('down')}
         >↓</button>
       </div>
