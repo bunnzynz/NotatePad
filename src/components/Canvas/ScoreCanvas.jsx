@@ -350,15 +350,9 @@ export default function ScoreCanvas() {
     if (closest) { setSelection(closest.measureId, closest.staffId, closest.noteId); return }
     if (!hitStaff || !hitMeasureId) return
 
-    const notesInMeasure = Object.values(notePositions.current)
-      .filter(p => p.measureId === hitMeasureId && p.staffId === hitStaff.staffId && p.pageIdx === pi)
-      .sort((a, b) => a.x - b.x)
-
-    let anchorNoteId = null
-    for (const p of notesInMeasure) {
-      if (p.x < clickX) anchorNoteId = p.noteId
-    }
-    setSelection(hitMeasureId, hitStaff.staffId, anchorNoteId)
+    // Clicking empty space switches to this stave/measure but clears any note selection,
+    // so toolbar controls arm for the next insertion rather than editing an existing note.
+    setSelection(hitMeasureId, hitStaff.staffId, null)
   }, [setSelection])
 
   // ── Right click → insert note at clicked pitch ────────────────────────────
