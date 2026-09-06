@@ -229,12 +229,14 @@ export const useScoreStore = create(
     const newId = uuid()
     set((s) => {
       const { selection, measures, inputState, staves } = s
-      const measureId = selection.measureId ?? measures[measures.length - 1]?.id
-      const staffId   = selection.staffId   ?? staves[0]?.id
+      // Click-to-insert can pass explicit measureId/staffId; keyboard entry uses selection.
+      const measureId = overrides.measureId ?? selection.measureId ?? measures[measures.length - 1]?.id
+      const staffId   = overrides.staffId   ?? selection.staffId   ?? staves[0]?.id
       if (!measureId || !staffId) return s
 
-      // Auto-pick octave based on the last note on this stave (voice-leading approach).
-      // Only applies when a pitch is given without an explicit octave override.
+      // Auto-pick octave via voice-leading when pitch given but no explicit octave.
+      // Click-to-insert always passes an explicit octave (from yToPitch) so this branch
+      // is only used for keyboard A-G entry.
       let octave = overrides.octave
       if (octave === undefined) {
         octave = (overrides.pitch && !overrides.isRest)
@@ -257,7 +259,11 @@ export const useScoreStore = create(
         if (m.id !== measureId) return m
         const notes = m.notesByStaff[staffId] ?? []
         let newNotes
-        if (!selection.noteId) {
+        if (overrides.insertIndex !== undefined) {
+          // Click-to-insert: place at a specific index within the measure.
+          const idx = Math.max(0, Math.min(overrides.insertIndex, notes.length))
+          newNotes = [...notes.slice(0, idx), newNote, ...notes.slice(idx)]
+        } else if (!selection.noteId) {
           newNotes = [...notes, newNote]
         } else {
           const idx = notes.findIndex((n) => n.id === selection.noteId)

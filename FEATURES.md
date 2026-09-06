@@ -47,10 +47,10 @@ Select the stave you want to delete (click its toolbar button so it is highlight
 
 ## 2. Adding Notes ✅
 
-### Step 1 — Position the cursor
-**Click anywhere in a measure** to move the cursor there. Click within the note area to position between existing notes — the cursor lands after the note nearest to your click on the left.
+### Step 1 — Click on the stave where you want the note
+**Click anywhere on a stave** to insert a note there immediately. The pitch is determined by where you click vertically — higher on the stave = higher pitch. The note slots in at the horizontal position you clicked, pushing later notes to the right.
 
-Clicking does not insert a note. It only moves the cursor.
+If you click directly on an existing note head, it is selected (turned blue) rather than a new note being inserted.
 
 ### Step 2 — Choose a duration
 Select a duration from the toolbar or press a number key:
@@ -66,16 +66,12 @@ Select a duration from the toolbar or press a number key:
 
 The toolbar buttons show **W H Q 8 16 32**. The selected duration stays active until you change it.
 
-### Step 3 — Enter the note
-Press **A through G** on your keyboard to insert the note at that pitch, on the active stave.
+### Keyboard entry (alternative)
+You can also add notes with the keyboard: press **A through G** to insert that pitch at the cursor. The octave is chosen automatically — the note lands in the octave closest to the previous note on that stave, so runs and scales flow naturally without jumping around. If there is no previous note, it defaults to the middle of the stave (B4 for treble, D3 for bass).
 
-**Octave is chosen automatically.** When you type a pitch letter, NotatePad places the note in the octave closest to the previous note you entered on that stave. This means notes flow naturally up and down the stave as you type — just like voice leading. If there is no previous note, the note is placed near the middle of the stave (B4 for treble, D3 for bass).
+For a **rest**, press **R**.
 
-To move a note up or down by octave after it is entered, use **Ctrl + ↑ / ↓**.
-
-For a **rest**, press **R**. A rest of the current duration is inserted.
-
-Notes are always inserted **after** the cursor position. The cursor then advances to the new note.
+To move a note up or down by octave after entry, use **Ctrl + ↑ / ↓**.
 
 ### Accidentals
 Toggle accidentals **before or after** entering a note:

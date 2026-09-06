@@ -97,6 +97,7 @@ export default function ScoreCanvas() {
   const meta         = useScoreStore((s) => s.meta)
   const selection    = useScoreStore((s) => s.selection)
   const setSelection = useScoreStore((s) => s.setSelection)
+  const insertNote   = useScoreStore((s) => s.insertNote)
 
   const pageRefs      = useRef([])
   const notePositions = useRef({})
@@ -181,7 +182,7 @@ export default function ScoreCanvas() {
           const bottomLineY = topLineY + STAVE_LINE_H
 
           staffInfo.current.push({
-            staffId: staff.id, pageIdx: pi, systemIdx: si,
+            staffId: staff.id, clef: staff.clef, pageIdx: pi, systemIdx: si,
             y: topLineY, bottom: bottomLineY,
           })
 
@@ -306,31 +307,30 @@ export default function ScoreCanvas() {
     const clickX = e.clientX - rect.left
     const clickY = e.clientY - rect.top
 
-    // 1. Select existing note — check both X and Y so wrong-stave hits are avoided
+    // 1. Click on an existing note → select it (do not insert another)
     let closest = null, minDist = Infinity
     for (const pos of Object.values(notePositions.current)) {
       if (pos.pageIdx !== pi) continue
       const dx = Math.abs(pos.x - clickX)
       const dy = Math.abs(pos.y - clickY)
-      if (dx < 20 && dy < 28) {
+      if (dx < 20 && dy < 20) {
         const d = dx + dy
         if (d < minDist) { minDist = d; closest = pos }
       }
     }
     if (closest) { setSelection(closest.measureId, closest.staffId, closest.noteId); return }
 
-    // 2. Find clicked staff — generous threshold to allow ledger-line area clicks
-    const THRESHOLD = 40
+    // 2. Find the stave closest to the click (allows ledger-line area clicks)
     let hitStaff = null, minStaveDist = Infinity
     for (const sb of staffInfo.current) {
       if (sb.pageIdx !== pi) continue
-      const mid = (sb.y + sb.bottom) / 2
+      const mid  = (sb.y + sb.bottom) / 2
       const dist = Math.abs(clickY - mid)
       if (dist < minStaveDist) { minStaveDist = dist; hitStaff = sb }
     }
-    if (!hitStaff) return
+    if (!hitStaff || minStaveDist > 60) return  // too far from any stave
 
-    // 3. Find clicked measure
+    // 3. Find the measure at the click X
     let hitMeasureId = null
     for (const [measureId, infoArr] of Object.entries(measureInfo.current)) {
       const info = infoArr.find(i => i.pageIdx === pi && i.staffId === hitStaff.staffId)
@@ -340,18 +340,19 @@ export default function ScoreCanvas() {
     }
     if (!hitMeasureId) return
 
-    // 4. Position cursor before the note closest to the click X (no insert)
+    // 4. Compute pitch from the Y position of the click
+    const { pitch, octave } = yToPitch(clickY, hitStaff.y, hitStaff.clef)
+
+    // 5. Compute insert position within the measure from the X position
     const notesInMeasure = Object.values(notePositions.current)
       .filter(p => p.measureId === hitMeasureId && p.staffId === hitStaff.staffId && p.pageIdx === pi)
       .sort((a, b) => a.x - b.x)
 
-    let anchorNoteId = null
-    for (const p of notesInMeasure) {
-      if (p.x < clickX) anchorNoteId = p.noteId
-    }
+    const insertIndex = notesInMeasure.filter(p => p.x < clickX).length
 
-    setSelection(hitMeasureId, hitStaff.staffId, anchorNoteId)
-  }, [setSelection])
+    // 6. Insert the note — uses current inputState duration/accidental/dotted
+    insertNote({ pitch, octave, measureId: hitMeasureId, staffId: hitStaff.staffId, insertIndex })
+  }, [setSelection, insertNote])
 
   const isEmpty = measures.length === 1 && staves.every(st => (measures[0].notesByStaff[st.id] ?? []).length === 0)
 
@@ -368,7 +369,7 @@ export default function ScoreCanvas() {
       ))}
       {isEmpty && (
         <p className={styles.hint}>
-          Select a duration (1–6), then press A–G or click the staff to add notes.
+          Select a duration (1–6), then click anywhere on the staff to add a note there.
         </p>
       )}
     </div>
