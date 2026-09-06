@@ -1,7 +1,8 @@
-# NotatePad — Feature Reference
+# NotatePad — Feature Reference & User Guide
 
-> Living document. Update this as features are added, changed, or removed.
-> Status: Draft | In Progress | Implemented | Deprecated
+> This document describes exactly what is implemented and how to use it.
+> It is updated every time a feature ships or changes.
+> **Status key:** ✅ Implemented | 🔜 Planned | ❌ Not yet started
 
 ---
 
@@ -9,222 +10,246 @@
 
 NotatePad is a **freestyle notation editor**. The fundamental contract with the user:
 
-- You write freely. The app does not correct you.
-- Bar structure is descriptive, not enforced. You can put 20 crotchets in one bar and it will render them, no questions asked.
+- You write freely. The app never corrects you.
+- You can put 20 crotchets in a 4/4 bar and it will render them without complaint — notes beyond the bar's capacity are shown in red so you can see them, but nothing is removed or moved.
 - Validation is always **opt-in**, never automatic.
-- Every autocorrect-style behaviour that exists in Sibelius, MuseScore, Noteflight etc. is either absent or optional here.
 
 ---
 
-## Feature Areas
+## The Page
 
-### 1. Score Canvas (Notation Editor)
+Every score is laid out on **A4 pages** (794 × 1123 px), exactly as it would look printed. Measures are arranged into systems (rows of staves) that fill the full page width — if you have 4 bars, each takes one quarter of the line. When a system is full, the next one starts on a new row. When a page is full, a new page is added automatically.
 
-| Feature | Description | Status |
-|---|---|---|
-| Staff rendering | Clean treble/bass/grand staff rendered as SVG via VexFlow | Draft |
-| Free-form note entry | Place notes without bar beat enforcement | Draft |
-| Unlimited notes per bar | Any number of notes in any bar, no overflow errors | Draft |
-| Note selection | Click or keyboard-navigate to select a note | Draft |
-| Note deletion | Backspace/Delete removes selected note | Draft |
-| Rest entry | Enter rests explicitly; no auto-fill rests | Draft |
-| Barline insertion | Manual barline placement, never automatic | Draft |
-| Dotted notes | Augmentation dots on any note value | Draft |
-| Ties | Connect notes across barlines | Draft |
-| Accidentals | Sharp, flat, natural — applied manually | Draft |
-| Clef selection | Treble, Bass, Alto, Tenor per staff | Draft |
-| Multiple staves | Add/remove staves (e.g. grand staff for piano) | Draft |
-| Zoom in/out | Scale the canvas view | Draft |
-| Scroll | Horizontal and vertical scroll for long scores | Draft |
+Page numbers appear at the bottom of page 2 onwards. The score title appears at the top of page 1.
+
+The **active system** (the one containing your cursor) is highlighted with a soft blue background so you always know where you are.
 
 ---
 
-### 2. Note Input
+## 1. Staves ✅
 
-| Feature | Description | Status |
-|---|---|---|
-| Keyboard entry | Letter keys A–G enter the named pitch | Draft |
-| Duration shortcuts | Keys 1–7 or W/H/Q/E/S/T for whole–64th | Draft |
-| Octave shift | Ctrl+Up / Ctrl+Down shift pitch by octave | Draft |
-| Accidental toggle | + for sharp, - for flat, = for natural | Draft |
-| Rest toggle | R key inserts a rest of current duration | Draft |
-| Dot toggle | . key toggles dotted on current duration | Draft |
-| Click-to-place | Click on staff line/space to place note at that pitch | Draft |
-| Step-time input | Move cursor forward after each note entry | Draft |
-| Insert mode | Insert a note before the selected note | Draft |
+### Default layout
+A new score opens with a **grand staff**: treble clef on top, bass clef below. This is the default for piano-style scoring.
 
----
+### Switching between staves
+The toolbar shows a button for each stave (𝄞 for treble, 𝄢 for bass). Click one to make it the active stave — this is where new notes will be inserted. The active stave button appears highlighted.
 
-### 3. Editing
+### Changing a stave's clef
+Select the stave you want to change (click its button in the toolbar), then choose **Treble** or **Bass** from the clef dropdown. The clef updates immediately on every system.
 
-| Feature | Description | Status |
-|---|---|---|
-| Undo | Ctrl+Z — unlimited undo steps | Draft |
-| Redo | Ctrl+Y / Ctrl+Shift+Z | Draft |
-| Copy | Ctrl+C — copy selected note(s) or measure(s) | Draft |
-| Paste | Ctrl+V — paste at cursor | Draft |
-| Cut | Ctrl+X | Draft |
-| Multi-select | Shift+click or Shift+arrow to select a range | Draft |
-| Drag to reorder | Drag notes or measures to reposition | Draft |
-| Transpose selection | Shift pitch of selected notes up/down by interval | Draft |
-| Change duration | Select note(s), press new duration key to retype | Draft |
-| Add/remove measure | Insert or delete a bar | Draft |
+### Adding staves
+Click **+Staff** to add a new stave below the existing ones. You can have up to 4 staves. New staves default to bass if you already have a treble stave, otherwise treble.
+
+### Removing a stave
+Select the stave you want to delete (click its toolbar button so it is highlighted), then click **−Staff**. The selected stave is removed — not always the bottom one. The minimum is 1 stave.
 
 ---
 
-### 4. Score Metadata
+## 2. Adding Notes ✅
 
-| Feature | Description | Status |
-|---|---|---|
-| Title | Editable score title | Draft |
-| Composer name | Optional composer/arranger field | Draft |
-| Tempo (BPM) | Numeric BPM field | Draft |
-| Time signature | Displayed at start; can be changed per measure | Draft |
-| Key signature | Set globally or per section | Draft |
-| Instrument name | Label per staff | Draft |
-| Copyright / notes | Footer text field | Draft |
+### Step 1 — Position the cursor
+**Click anywhere in a measure** to move the cursor there. Click within the note area to position between existing notes — the cursor lands after the note nearest to your click on the left.
 
----
+Clicking does not insert a note. It only moves the cursor.
 
-### 5. Playback
+### Step 2 — Choose a duration
+Select a duration from the toolbar or press a number key:
 
-| Feature | Description | Status |
-|---|---|---|
-| Basic playback | Play score from beginning using Tone.js synthesis | Draft |
-| Stop / Pause | Stop or pause playback | Draft |
-| Playback from selection | Play from the currently selected note or measure | Draft |
-| Note cursor highlight | Active note highlighted during playback | Draft |
-| Tempo control | Slider or numeric field to change BPM | Draft |
-| Loop | Loop a selected range | Draft |
-| Metronome click | Optional audible metronome during playback | Draft |
-| Slow playback | Reduce tempo without affecting pitch | Draft |
-| Instrument sounds | Select playback instrument per staff (piano, violin, etc.) | Draft |
-| Volume control | Master volume and per-staff volume | Draft |
+| Key | Duration |
+|-----|----------|
+| 1 | Whole (semibreve) |
+| 2 | Half (minim) |
+| 3 | Quarter (crotchet) |
+| 4 | 8th (quaver) |
+| 5 | 16th (semiquaver) |
+| 6 | 32nd (demisemiquaver) |
 
----
+The toolbar buttons show **W H Q 8 16 32**. The selected duration stays active until you change it.
 
-### 6. Transposition
+### Step 3 — Enter the note
+Press **A through G** on your keyboard to insert the note at that pitch, in the current octave, on the active stave.
 
-| Feature | Description | Status |
-|---|---|---|
-| Transpose score | Shift entire score up or down by semitones or interval | Draft |
-| Transpose selection | Transpose only selected notes/measures | Draft |
-| Concert pitch toggle | Toggle between concert and transposing instrument pitch | Draft |
-| Key-aware transposition | Optionally adjust key signature when transposing | Draft |
+For a **rest**, press **R**. A rest of the current duration is inserted.
 
----
+Notes are always inserted **after** the cursor position. The cursor then advances to the new note.
 
-### 7. Optional Notation Checker
+### Accidentals
+Toggle accidentals **before or after** entering a note:
 
-| Feature | Description | Status |
-|---|---|---|
-| "Check my notation" button | Manually triggered — never runs automatically | Draft |
-| Bar beat validation | Flags bars where note durations don't match time sig | Draft |
-| Voice overlap detection | Warns if notes on same stem collide strangely | Draft |
-| Missing accidental warnings | Flags chromatic notes that may need accidentals | Draft |
-| Results panel | Inline (no modal), lists each issue with measure reference | Draft |
-| Jump to issue | Click issue in panel → score scrolls to that measure | Draft |
-| Dismiss individual issues | Mark an issue as intentional and hide it | Draft |
-| Dismiss all | Clear all checker results | Draft |
+- Click **♯** (or press `+`) — sharp
+- Click **♭** (or press `-`) — flat
+- Click **♮** (or press `=`) — natural
+
+An active accidental is shown highlighted. Click it again to deactivate. The accidental applies to the next note you enter, or to the currently selected note if one is selected.
+
+### Dotted notes
+Click the **·** button (or press `.`) to toggle dotted. When active, all notes entered will be dotted. The dot lengthens a note by half its value.
 
 ---
 
-### 8. Export & Print
+## 3. Adjusting Pitch After Entry ✅
 
-| Feature | Description | Status |
-|---|---|---|
-| PDF export | Render score as PDF (client-side, no server) | Draft |
-| SVG export | Export raw SVG of the score | Draft |
-| MusicXML export | Standard interchange format for other notation apps | Draft |
-| MIDI export | Export playable MIDI file | Draft |
-| Print | Browser print with score-appropriate page layout | Draft |
-| Page size options | A4, Letter, A3 | Draft |
-| Margin control | Adjust score margins before export | Draft |
+Once a note is selected (blue), you can change its pitch without re-entering it:
 
----
+### Move by step (one diatonic step at a time)
+- **↑ Up arrow** — raises the note one step (e.g. C → D, E → F)
+- **↓ Down arrow** — lowers the note one step
 
-### 9. Import
+### Move by octave
+- **Ctrl + ↑** — raises the note one octave
+- **Ctrl + ↓** — lowers the note one octave
+- **Oct ↑ / ↓ buttons in toolbar** — same as Ctrl+Arrow
 
-| Feature | Description | Status |
-|---|---|---|
-| MusicXML import | Import .xml / .mxl files into the editor | Draft |
-| MIDI import | Import .mid and convert to notation | Draft |
+The **Oct number** in the toolbar always shows the octave of the selected note. When no note is selected, it shows the octave that will be used for the next note you type.
 
 ---
 
-### 10. Layout & Display
+## 4. Selecting Notes ✅
 
-| Feature | Description | Status |
-|---|---|---|
-| Bars per line | Manual control over how many bars appear per line | Draft |
-| Page view / scroll view | Switch between paginated view and continuous scroll | Draft |
-| System breaks | Force a new line at any barline | Draft |
-| High-contrast mode | Accessibility toggle, persisted to localStorage | Draft |
-| Dark mode | Optional dark theme | Draft |
-| Font size / notation scale | Global zoom | Draft |
+### Click to select
+Click directly on a note head to select it. The note turns blue and the cursor line appears at that position.
 
----
+Click-to-select checks both horizontal and vertical position, so clicking near a note on the treble stave will not accidentally select a note on the bass stave.
 
-### 11. Accessibility
+### Keyboard navigation
+- **← Left arrow** — move selection to the previous note in the measure, or to the last note of the previous measure
+- **→ Right arrow** — move selection to the next note, or to the first note of the next measure
 
-| Feature | Description | Status |
-|---|---|---|
-| ARIA labels on all controls | Every button, input, and toggle is labelled | Draft |
-| Screen reader score narration | Focused note announced: "Quarter note C4, measure 2, beat 1" | Draft |
-| ARIA live region | Dynamic announcements for playback, errors, actions | Draft |
-| Full keyboard navigation | Every feature reachable without a mouse | Draft |
-| High-contrast mode | See Layout & Display above | Draft |
-| Focus indicators | Visible focus ring on all interactive elements | Draft |
-| Keyboard shortcut reference | ? key opens inline shortcut list | Draft |
-| Skip-to-content link | Bypass toolbar for screen reader users | Draft |
+### Deselect
+Click in an empty part of a measure (not on a note) to move the cursor there without selecting a note.
 
 ---
 
-### 12. Persistence
+## 5. Deleting Notes ✅
 
-| Feature | Description | Status |
-|---|---|---|
-| Auto-save to localStorage | Score saved in browser automatically | Draft |
-| Manual save to file | Download score as a .notatePad JSON file | Draft |
-| Open from file | Load a .notatePad file back into the editor | Draft |
-| Session restore | On page reload, restore last session | Draft |
+Select the note you want to delete, then press **Delete** or **Backspace**. The note is removed and the cursor moves to the previous note.
+
+---
+
+## 6. Measures (Bars) ✅
+
+- **+Bar** — adds a new bar at the end of the score. The cursor moves to the new bar.
+- **−Bar** — removes the currently selected bar. Cannot remove the last remaining bar.
+
+Bars never enforce beat counts. You can put any number of notes in any bar. Notes that go beyond the time signature's capacity are highlighted in **red** as a visual guide, but are not removed.
+
+---
+
+## 7. Score Title ✅
+
+Click the **"Untitled score"** field at the top of the screen and type your title. It appears at the top of page 1.
+
+---
+
+## 8. Time Signature ✅
+
+Choose from the **Time** dropdown in the toolbar. Options: 2/4, 3/4, 4/4, 3/8, 6/8, 12/8. The time signature is shown at the start of the first measure and is used to calculate which notes appear in red (overflow).
+
+Changing the time signature does not move or remove notes.
+
+---
+
+## 9. Key Signature ✅ (display only)
+
+Choose a key from the **Key** dropdown. The key is stored with the score and saved to file, but is not yet rendered on the stave itself. Key signature rendering on the staff is coming in the next update.
+
+---
+
+## 10. Undo / Redo ✅
+
+- **Ctrl+Z** — undo the last action (unlimited steps)
+- **Ctrl+Y** — redo
+
+Or use the **↩ ↪** buttons in the toolbar. Undo history is not saved between sessions.
+
+---
+
+## 11. Saving and Opening Files ✅
+
+### Save
+Click **Save** in the toolbar. Your score is downloaded as a `.notatePad` file (a JSON file). You can save this anywhere on your computer.
+
+The filename is your score title, or "Untitled Score" if no title is set.
+
+### Open
+Click **Open** in the toolbar and choose a `.notatePad` file. The score loads immediately, replacing the current score.
+
+### Session restore
+While you are in the same browser tab, your score is automatically saved to session storage. If the page refreshes accidentally, your score will be restored. Closing the tab or opening a new tab starts a fresh score.
+
+### Before you leave
+If your score has any content (notes, title, or more than one bar), the browser will warn you before you close the tab or navigate away. Use **Save** first if you want to keep your work.
 
 ---
 
 ## Keyboard Shortcut Reference
 
+### Note entry
 | Key | Action |
-|---|---|
-| A–G | Enter note with that letter name |
+|-----|--------|
+| A – G | Insert note with that pitch |
 | R | Insert rest |
-| 1–7 | Set duration (1=whole, 2=half, 3=quarter, 4=8th, 5=16th, 6=32nd, 7=64th) |
+| 1 | Whole note |
+| 2 | Half note |
+| 3 | Quarter note |
+| 4 | 8th note |
+| 5 | 16th note |
+| 6 | 32nd note |
 | . | Toggle dotted |
-| + / - | Sharp / Flat |
+| + or # | Sharp |
+| - | Flat |
 | = | Natural |
-| Ctrl+Up / Down | Octave up / down |
-| Arrow keys | Navigate between notes |
+
+### Editing
+| Key | Action |
+|-----|--------|
+| ↑ | Raise selected note one step |
+| ↓ | Lower selected note one step |
+| Ctrl + ↑ | Raise selected note one octave |
+| Ctrl + ↓ | Lower selected note one octave |
+| ← | Move selection left |
+| → | Move selection right |
 | Delete / Backspace | Delete selected note |
-| Ctrl+Z | Undo |
-| Ctrl+Y | Redo |
-| Ctrl+C / X / V | Copy / Cut / Paste |
-| Space | Play / Stop |
-| Ctrl+P | Print |
-| Ctrl+E | Export PDF |
-| ? | Show keyboard shortcut reference |
+| Ctrl + Z | Undo |
+| Ctrl + Y | Redo |
 
 ---
 
-## Out of Scope (v1)
+## What's Coming
 
-These are deliberately excluded from v1. See IDEAS.md for future consideration.
+The following features are planned but not yet built. See ROADMAP.md for the full phase plan.
 
-- Real-time collaboration
-- Cloud account / login
-- AI-assisted notation
-- Mobile touch input
-- Guitar tablature
-- Drum notation
-- Figured bass
-- Ossia staves
-- Custom noteheads
-- Extended techniques notation
+### Notation rendering
+- 🔜 Key signature shown on the stave
+- 🔜 Ties across barlines
+- 🔜 Alto and tenor clef
+
+### Note entry
+- 🔜 Copy / paste notes and measures
+- 🔜 Change a note's duration after entry (select + press duration key)
+- 🔜 Insert mode (insert before cursor, not after)
+
+### Playback
+- 🔜 Play from beginning
+- 🔜 Play from selection
+- 🔜 Tempo slider
+- 🔜 Active note highlight during playback
+- 🔜 Metronome click
+
+### Export
+- 🔜 PDF export
+- 🔜 Print layout
+- 🔜 SVG export
+- 🔜 MusicXML export
+
+### Layout
+- 🔜 Zoom in / out
+- 🔜 Manual system breaks
+
+### Score metadata
+- 🔜 Composer name
+- 🔜 Instrument labels per stave
+
+### Optional notation checker
+- 🔜 Manually triggered beat-count validation ("Check my notation" button)
+- 🔜 Results panel with jump-to-measure
