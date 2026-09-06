@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useCallback } from 'react'
-import { Renderer, Stave, StaveNote, Voice, Formatter, Accidental, StaveConnector } from 'vexflow'
+import { Renderer, Stave, StaveNote, Voice, Formatter, Accidental, StaveConnector, Dot } from 'vexflow'
 import { useScoreStore } from '../../store/scoreStore.js'
 import {
   computeLayout,
@@ -209,8 +209,8 @@ export default function ScoreCanvas() {
                   keys: [vexKey(note)],
                   duration: vexDuration(note),
                   clef: staff.clef,
-                  ...(note.dotted && !note.isRest ? { dots: 1 } : {}),
                 })
+                if (note.dotted && !note.isRest) Dot.buildAndAttach([sn], { all: true })
                 if (note.accidental && !note.isRest) sn.addModifier(new Accidental(note.accidental), 0)
 
                 const overflow = beats >= cap
