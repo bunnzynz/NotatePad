@@ -193,6 +193,7 @@ export default function ScoreCanvas() {
             const stave  = new Stave(staveX, staveTopY, ml.width)
 
             if (ml.isFirstInSystem) stave.addClef(staff.clef)
+            if (ml.isFirstInSystem && meta.keySignature !== 'C') stave.addKeySignature(meta.keySignature)
             if (ml.isFirstInPiece)  stave.addTimeSignature(`${meta.timeSignature[0]}/${meta.timeSignature[1]}`)
 
             stave.setContext(ctx).draw()

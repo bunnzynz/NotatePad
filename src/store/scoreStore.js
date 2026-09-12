@@ -103,7 +103,10 @@ export const useScoreStore = create(
   history: { past: [], future: [] },
 
   // --- Meta ---
-  setMeta: (updates) => set((s) => ({ meta: { ...s.meta, ...updates } })),
+  setMeta: (updates) => set((s) => {
+    const snap = snapshot(s)
+    return { meta: { ...s.meta, ...updates }, history: { past: [...s.history.past, snap], future: [] } }
+  }),
 
   // --- Input state ---
   setDuration: (duration) =>
