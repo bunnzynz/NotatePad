@@ -151,3 +151,12 @@
   padding: 0 2px;
   flex-shrink: 0;
 }
+
+.divider {
+  display: block;
+  width: 1px;
+  height: 20px;
+  background: var(--color-border);
+  margin: 0 3px;
+  flex-shrink: 0;
+}

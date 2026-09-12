@@ -54,7 +54,7 @@ function getSmartOctave(pitch, staves, staveId, measures, selection) {
 }
 
 function snapshot(state) {
-  return JSON.parse(JSON.stringify({ measures: state.measures, staves: state.staves }))
+  return JSON.parse(JSON.stringify({ measures: state.measures, staves: state.staves, meta: state.meta }))
 }
 
 const firstStaffId  = uuid()
@@ -494,6 +494,7 @@ export const useScoreStore = create(
       return {
         measures: prev.measures,
         staves:   prev.staves,
+        meta:     prev.meta,
         history: { past: past.slice(0, -1), future: [snapshot(s), ...future] },
       }
     }),
@@ -505,6 +506,7 @@ export const useScoreStore = create(
       return {
         measures: future[0].measures,
         staves:   future[0].staves,
+        meta:     future[0].meta,
         history: { past: [...past, snapshot(s)], future: future.slice(1) },
       }
     }),

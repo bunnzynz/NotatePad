@@ -132,6 +132,7 @@ export default function Toolbar() {
             <span className={styles.label}>Step</span>
             <button className={styles.btn} title="Step up (↑)"        disabled={pitchDisabled} onClick={() => shiftNoteStep('up')}>↑</button>
             <button className={styles.btn} title="Step down (↓)"      disabled={pitchDisabled} onClick={() => shiftNoteStep('down')}>↓</button>
+            <span className={styles.divider} aria-hidden="true" />
             <span className={styles.label}>Oct</span>
             <button className={styles.btn} title="Octave up (Ctrl+↑)" disabled={pitchDisabled} onClick={() => shiftNoteOctave('up')}>↑</button>
             <button className={styles.btn} title="Octave down (Ctrl+↓)" disabled={pitchDisabled} onClick={() => shiftNoteOctave('down')}>↓</button>
