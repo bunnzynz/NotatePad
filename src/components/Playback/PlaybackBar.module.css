@@ -86,3 +86,39 @@
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
+
+.stopBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-4);
+  height: 34px;
+  background: var(--color-error);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  font-family: var(--font-ui);
+  transition: background 0.1s;
+}
+
+.stopBtn:hover {
+  background: #a93226;
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.volumeSlider {
+  width: 80px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.btn[aria-pressed='true'] {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  font-weight: 600;
+}

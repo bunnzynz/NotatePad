@@ -77,6 +77,10 @@ export const useScoreStore = create(
     keySignature: 'C',
   },
 
+  // Not persisted (see partialize below)
+  playback: { isPlaying: false, playingNoteIds: [], metronomeEnabled: false },
+  setPlayback: (updates) => set((s) => ({ playback: { ...s.playback, ...updates } })),
+
   // Staff definitions (order = top to bottom)
   staves: [
     { id: firstStaffId,  clef: 'treble', label: '' },

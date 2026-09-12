@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useScoreStore } from '../store/scoreStore.js'
+import { play, stop } from '../audio/engine.js'
 
 const DURATION_MAP = {
   '1': 'w', '2': 'h', '3': 'q', '4': '8', '5': '16', '6': '32', '7': '64',
@@ -30,6 +31,19 @@ export function useKeyboard() {
       // We handle Ctrl+Arrow before the ctrl guard above, so re-check:
       // Actually octave uses Ctrl — let's handle them before the ctrl guard.
       // (Re-check: already handled above via ctrl guard — so add them here separately)
+
+      // Space — play/stop
+      if (key === ' ') {
+        e.preventDefault()
+        const { isPlaying } = store.playback
+        if (isPlaying) {
+          stop()
+        } else {
+          const fromId = store.selection.noteId ?? store.selection.cursorNoteId ?? null
+          play(fromId)
+        }
+        return
+      }
 
       // Escape — clear note selection; cursor line stays put so it doesn't jump to measure start
       if (key === 'Escape') {

@@ -92,10 +92,11 @@ function mkText(content, x, y, fontSize, fontWeight, anchor) {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ScoreCanvas() {
-  const measures     = useScoreStore((s) => s.measures)
-  const staves       = useScoreStore((s) => s.staves)
-  const meta         = useScoreStore((s) => s.meta)
-  const selection    = useScoreStore((s) => s.selection)
+  const measures         = useScoreStore((s) => s.measures)
+  const staves           = useScoreStore((s) => s.staves)
+  const meta             = useScoreStore((s) => s.meta)
+  const selection        = useScoreStore((s) => s.selection)
+  const playingNoteIds   = useScoreStore((s) => s.playback.playingNoteIds)
   const inputState        = useScoreStore((s) => s.inputState)
   const setSelection      = useScoreStore((s) => s.setSelection)
   const setCursorPosition = useScoreStore((s) => s.setCursorPosition)
@@ -219,7 +220,9 @@ export default function ScoreCanvas() {
                 const overflow = beats >= cap
                 beats += noteBeatValue(note)
 
-                if (note.id === selection.noteId) {
+                if (playingNoteIds.includes(note.id)) {
+                  sn.setStyle({ fillStyle: '#E8820C', strokeStyle: '#E8820C' })
+                } else if (note.id === selection.noteId) {
                   sn.setStyle({ fillStyle: 'var(--color-accent)', strokeStyle: 'var(--color-accent)' })
                 } else if (overflow) {
                   sn.setStyle({ fillStyle: 'var(--color-error)', strokeStyle: 'var(--color-error)' })
