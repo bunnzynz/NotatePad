@@ -387,16 +387,18 @@ export const useScoreStore = create(
       }
     }),
 
-  // Remove any accidental from the selected note, or clear inputState accidental.
-  clearAccidental: () =>
+  // Toggle natural: adds 'n' when no accidental is present, clears otherwise.
+  toggleNatural: () =>
     set((s) => {
-      const newInput = { ...s.inputState, accidental: null }
+      const current = s.inputState.accidental
+      const newAcc = current === null ? 'n' : null
+      const newInput = { ...s.inputState, accidental: newAcc }
       if (!s.selection.noteId) return { inputState: newInput }
       const snap = snapshot(s)
       const newMeasures = s.measures.map((m) => {
         if (m.id !== s.selection.measureId) return m
         const notes = m.notesByStaff[s.selection.staffId] ?? []
-        return { ...m, notesByStaff: { ...m.notesByStaff, [s.selection.staffId]: notes.map((n) => n.id === s.selection.noteId ? { ...n, accidental: null } : n) } }
+        return { ...m, notesByStaff: { ...m.notesByStaff, [s.selection.staffId]: notes.map((n) => n.id === s.selection.noteId ? { ...n, accidental: n.accidental === null ? 'n' : null } : n) } }
       })
       return { inputState: newInput, measures: newMeasures, history: { past: [...s.history.past, snap], future: [] } }
     }),

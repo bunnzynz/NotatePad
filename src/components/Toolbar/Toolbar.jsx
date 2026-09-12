@@ -22,11 +22,11 @@ const TIME_SIGS    = ['2/4', '3/4', '4/4', '3/8', '6/8', '12/8']
 const KEY_SIGS     = ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'F', 'Bb', 'Eb', 'Ab', 'Db']
 const CLEF_OPTIONS = [{ label: 'Treble', value: 'treble' }, { label: 'Bass', value: 'bass' }]
 
-function Group({ label, children }) {
+function Group({ label, children, className, active }) {
   return (
-    <div className={styles.group}>
+    <div className={`${styles.group}${className ? ` ${className}` : ''}`}>
       <div className={styles.groupButtons}>{children}</div>
-      <span className={styles.groupLabel}>{label}</span>
+      <span className={`${styles.groupLabel}${active ? ` ${styles.groupLabelActive}` : ''}`}>{label}</span>
     </div>
   )
 }
@@ -42,7 +42,7 @@ export default function Toolbar() {
   const setDuration     = useScoreStore((s) => s.setDuration)
   const setRestDuration = useScoreStore((s) => s.setRestDuration)
   const toggleAcc       = useScoreStore((s) => s.toggleAccidental)
-  const clearAcc        = useScoreStore((s) => s.clearAccidental)
+  const toggleNatural   = useScoreStore((s) => s.toggleNatural)
   const toggleDotted    = useScoreStore((s) => s.toggleDotted)
   const shiftNoteStep   = useScoreStore((s) => s.shiftNoteStep)
   const shiftNoteOctave = useScoreStore((s) => s.shiftNoteOctave)
@@ -122,7 +122,7 @@ export default function Toolbar() {
             <button className={styles.btn} aria-pressed={inputState.dotted} title="Dotted (.)" onClick={toggleDotted}>·</button>
           </Group>
 
-          <Group label="Rests">
+          <Group label="Rests" className={styles.restGroup} active={inputState.isRest}>
             {RESTS.map((r) => (
               <button
                 key={r.value}
@@ -133,13 +133,12 @@ export default function Toolbar() {
                 onClick={() => setRestDuration(r.value)}
               >{r.label}</button>
             ))}
-            <button className={`${styles.btn} ${styles.restBtn}`} aria-pressed={inputState.dotted} title="Dotted rest (.)" onClick={toggleDotted}>·</button>
           </Group>
 
           <Group label="Accidentals">
             <button className={styles.btn} aria-pressed={inputState.accidental === '#'} title="Sharp (+)" disabled={accDisabled} onClick={() => toggleAcc('#')}>♯</button>
             <button className={styles.btn} aria-pressed={inputState.accidental === 'b'} title="Flat (−)"  disabled={accDisabled} onClick={() => toggleAcc('b')}>♭</button>
-            <button className={styles.btn} title="Remove accidental (=)" disabled={accDisabled} onClick={clearAcc}>♮</button>
+            <button className={styles.btn} aria-pressed={inputState.accidental === 'n'} title="Natural (=)" disabled={accDisabled} onClick={toggleNatural}>♮</button>
           </Group>
 
           <Group label="Pitch">

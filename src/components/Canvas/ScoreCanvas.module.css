@@ -17,6 +17,11 @@
   border-radius: 2px;
   flex-shrink: 0;
   overflow: hidden;
+  /* Always render score in light theme — sheet music stays white regardless of high-contrast mode */
+  --color-text:   #1A1A1A;
+  --color-staff:  #3A3A3A;
+  --color-accent: #6B9FD4;
+  --color-error:  #C0392B;
 }
 
 .pageContent {

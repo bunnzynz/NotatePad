@@ -393,7 +393,7 @@ export default function ScoreCanvas() {
   const isEmpty = measures.length === 1 && staves.every(st => (measures[0].notesByStaff[st.id] ?? []).length === 0)
 
   return (
-    <div className={styles.scoreArea}>
+    <div className={styles.scoreArea} onContextMenu={(e) => e.preventDefault()}>
       {layout.pages.map((page, pi) => (
         <div key={pi} className={styles.page}>
           <div

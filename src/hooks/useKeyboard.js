@@ -59,10 +59,10 @@ export function useKeyboard() {
         return
       }
 
-      // Accidentals: + (sharp), - (flat), = (clear / natural)
+      // Accidentals: + (sharp), - (flat), = (natural toggle)
       if (key === '+' || key === '#') { e.preventDefault(); store.toggleAccidental('#'); return }
       if (key === '-')                { e.preventDefault(); store.toggleAccidental('b'); return }
-      if (key === '=')                { e.preventDefault(); store.clearAccidental();     return }
+      if (key === '=')                { e.preventDefault(); store.toggleNatural();       return }
 
       // Dotted
       if (key === '.') { e.preventDefault(); store.toggleDotted(); return }

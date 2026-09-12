@@ -123,9 +123,21 @@
   font-weight: 600;
 }
 
-/* Rest buttons use a warm tint when pressed to visually separate from note buttons */
+/* Rests group — warm amber accent to distinguish from Notes */
+.restGroup {
+  background: #FDF3E3;
+  border-top: 2px solid #D4860A;
+  margin-top: -2px; /* align with other groups */
+}
+
+.groupLabelActive {
+  color: #B07030;
+  font-weight: 600;
+}
+
+/* Rest buttons use a warm tint when pressed */
 .restBtn[aria-pressed='true'] {
-  background: #FDF3E7;
+  background: #FAEBD6;
   color: #B07030;
   font-weight: 600;
 }
