@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useScoreStore } from '../../store/scoreStore.js'
 import styles from './Toolbar.module.css'
 
@@ -31,8 +30,8 @@ function Group({ label, children, className }) {
   )
 }
 
-export default function Toolbar() {
-  const [activeTab, setActiveTab] = useState('notation')
+
+export default function Toolbar({ activeTab, setActiveTab }) {
 
   const undo            = useScoreStore((s) => s.undo)
   const redo            = useScoreStore((s) => s.redo)
@@ -41,6 +40,7 @@ export default function Toolbar() {
   const setMeta         = useScoreStore((s) => s.setMeta)
   const setDuration     = useScoreStore((s) => s.setDuration)
   const setRestDuration = useScoreStore((s) => s.setRestDuration)
+  const insertNote      = useScoreStore((s) => s.insertNote)
   const toggleAcc       = useScoreStore((s) => s.toggleAccidental)
   const toggleNatural   = useScoreStore((s) => s.toggleNatural)
   const toggleDotted    = useScoreStore((s) => s.toggleDotted)
@@ -63,6 +63,14 @@ export default function Toolbar() {
 
   const accDisabled   = (!selectedNote && inputState.isRest) || !!selectedNote?.isRest
   const pitchDisabled = !selectedNote || selectedNote.isRest
+
+  function handleRestClick(duration) {
+    if (selection.noteId) {
+      setRestDuration(duration)          // convert selected note → rest
+    } else {
+      insertNote({ isRest: true, duration })  // insert rest at cursor immediately
+    }
+  }
 
   function handleTimeSig(str) {
     const [n, d] = str.split('/').map(Number)
@@ -101,12 +109,18 @@ export default function Toolbar() {
       <div className={styles.tabStrip} role="tablist">
         <button role="tab" className={styles.tab} aria-selected={activeTab === 'notation'} onClick={() => setActiveTab('notation')}>Notation</button>
         <button role="tab" className={styles.tab} aria-selected={activeTab === 'file'}     onClick={() => setActiveTab('file')}>File</button>
+        <button role="tab" className={styles.tab} aria-selected={activeTab === 'guide'}    onClick={() => setActiveTab('guide')}>Guide</button>
       </div>
 
       {/* Ribbon content */}
       <div className={styles.ribbonContent}>
 
         {activeTab === 'notation' && (<>
+
+          <Group label="History">
+            <button className={styles.btn} data-tooltip="Undo · Ctrl+Z" onClick={undo}>↩</button>
+            <button className={styles.btn} data-tooltip="Redo · Ctrl+Y" onClick={redo}>↪</button>
+          </Group>
 
           <Group label="Notes">
             {DURATIONS.map((d) => (
@@ -115,38 +129,38 @@ export default function Toolbar() {
                 className={styles.btn}
                 aria-label={d.title}
                 aria-pressed={!inputState.isRest && inputState.duration === d.value}
-                title={d.title}
+                data-tooltip={`${d.title.split(' (')[0]} · ${d.value === 'w' ? '1' : d.value === 'h' ? '2' : d.value === 'q' ? '3' : d.value === '8' ? '4' : '5'}`}
                 onClick={() => setDuration(d.value)}
               >{d.label}</button>
             ))}
-            <button className={styles.btn} aria-pressed={inputState.dotted} title="Dotted (.)" onClick={toggleDotted}>·</button>
+            <button className={styles.btn} aria-pressed={inputState.dotted} data-tooltip="Dotted · ." onClick={toggleDotted}>·</button>
           </Group>
 
           <Group label="Accidentals">
-            <button className={styles.btn} aria-pressed={inputState.accidental === '#'} title="Sharp (+)" disabled={accDisabled} onClick={() => toggleAcc('#')}>♯</button>
-            <button className={styles.btn} aria-pressed={inputState.accidental === 'b'} title="Flat (−)"  disabled={accDisabled} onClick={() => toggleAcc('b')}>♭</button>
-            <button className={styles.btn} aria-pressed={inputState.accidental === 'n'} title="Natural (=)" disabled={accDisabled} onClick={toggleNatural}>♮</button>
+            <button className={styles.btn} aria-pressed={inputState.accidental === '#'} data-tooltip="Sharp · +" disabled={accDisabled} onClick={() => toggleAcc('#')}>♯</button>
+            <button className={styles.btn} aria-pressed={inputState.accidental === 'b'} data-tooltip="Flat · −"  disabled={accDisabled} onClick={() => toggleAcc('b')}>♭</button>
+            <button className={styles.btn} aria-pressed={inputState.accidental === 'n'} data-tooltip="Natural · =" disabled={accDisabled} onClick={toggleNatural}>♮</button>
           </Group>
 
           <Group label="Pitch">
             <span className={styles.label}>Step</span>
-            <button className={styles.btn} title="Step up (↑)"        disabled={pitchDisabled} onClick={() => shiftNoteStep('up')}>↑</button>
-            <button className={styles.btn} title="Step down (↓)"      disabled={pitchDisabled} onClick={() => shiftNoteStep('down')}>↓</button>
+            <button className={styles.btn} data-tooltip="Step up · ↑"        disabled={pitchDisabled} onClick={() => shiftNoteStep('up')}>↑</button>
+            <button className={styles.btn} data-tooltip="Step down · ↓"      disabled={pitchDisabled} onClick={() => shiftNoteStep('down')}>↓</button>
             <span className={styles.divider} aria-hidden="true" />
             <span className={styles.label}>Oct</span>
-            <button className={styles.btn} title="Octave up (Ctrl+↑)" disabled={pitchDisabled} onClick={() => shiftNoteOctave('up')}>↑</button>
-            <button className={styles.btn} title="Octave down (Ctrl+↓)" disabled={pitchDisabled} onClick={() => shiftNoteOctave('down')}>↓</button>
+            <button className={styles.btn} data-tooltip="Octave up · Ctrl+↑" disabled={pitchDisabled} onClick={() => shiftNoteOctave('up')}>↑</button>
+            <button className={styles.btn} data-tooltip="Octave down · Ctrl+↓" disabled={pitchDisabled} onClick={() => shiftNoteOctave('down')}>↓</button>
           </Group>
 
           <Group label="Rests">
-            {RESTS.map((r) => (
+            {RESTS.map((r, i) => (
               <button
                 key={r.value}
                 className={styles.btn}
                 aria-label={r.title}
                 aria-pressed={inputState.isRest && inputState.duration === r.value}
-                title={r.title}
-                onClick={() => setRestDuration(r.value)}
+                data-tooltip={`${r.title} · ${i === 0 ? '1' : i === 1 ? '2' : i === 2 ? '3' : i === 3 ? '4' : '5'} then R`}
+                onClick={() => handleRestClick(r.value)}
               >{r.label}</button>
             ))}
           </Group>
@@ -165,44 +179,40 @@ export default function Toolbar() {
 
           <Group label="Staves">
             {staves.map((staff, i) => (
-              <button key={staff.id} className={styles.btn} aria-pressed={selection.staffId === staff.id} title={`Staff ${i + 1} (${staff.clef})`} onClick={() => setActiveStaff(staff.id)}>
+              <button key={staff.id} className={styles.btn} aria-pressed={selection.staffId === staff.id} data-tooltip={`Select staff ${i + 1} (${staff.clef})`} onClick={() => setActiveStaff(staff.id)}>
                 {staff.clef === 'treble' ? '𝄞' : '𝄢'}{staves.length > 1 ? ` ${i + 1}` : ''}
               </button>
             ))}
-            {staves.length < 4 && <button className={styles.btn} title="Add staff" onClick={() => addStaff(staves.some(s => s.clef === 'bass') ? 'treble' : 'bass')}>+Staff</button>}
-            {staves.length > 1 && <button className={styles.btn} title="Remove selected staff" onClick={() => removeStaff(selection.staffId)}>−Staff</button>}
+            {staves.length < 4 && <button className={styles.btn} data-tooltip="Add staff" onClick={() => addStaff(staves.some(s => s.clef === 'bass') ? 'treble' : 'bass')}>+Staff</button>}
+            {staves.length > 1 && <button className={styles.btn} data-tooltip="Remove selected staff" onClick={() => removeStaff(selection.staffId)}>−Staff</button>}
             <select className={styles.select} value={staves.find(s => s.id === selection.staffId)?.clef ?? 'treble'} onChange={(e) => setStaffClef(selection.staffId, e.target.value)} aria-label="Clef">
               {CLEF_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
           </Group>
 
           <Group label="Bars">
-            <button className={styles.btn} onClick={addMeasure} title="Add bar">+Bar</button>
-            <button className={styles.btn} onClick={() => activeMeasure && removeMeasure(activeMeasure.id)} disabled={measures.length <= 1} title="Remove current bar">−Bar</button>
+            <button className={styles.btn} data-tooltip="Add bar" onClick={addMeasure}>+Bar</button>
+            <button className={styles.btn} data-tooltip="Remove current bar" onClick={() => activeMeasure && removeMeasure(activeMeasure.id)} disabled={measures.length <= 1}>−Bar</button>
           </Group>
 
         </>)}
 
         {activeTab === 'file' && (<>
 
-          <Group label="History">
-            <button className={styles.btn} onClick={undo} title="Undo (Ctrl+Z)">↩ Undo</button>
-            <button className={styles.btn} onClick={redo} title="Redo (Ctrl+Y)">↪ Redo</button>
-          </Group>
-
           <Group label="File">
-            <button className={styles.btn} onClick={handleSave} title="Save score to file">Save</button>
-            <label className={styles.btn} title="Open score from file" style={{ cursor: 'pointer' }}>
+            <button className={styles.btn} data-tooltip="Save score to file" onClick={handleSave}>Save</button>
+            <label className={styles.btn} data-tooltip="Open score from file" style={{ cursor: 'pointer' }}>
               Open
               <input type="file" accept=".notatePad,application/json" onChange={handleOpen} style={{ display: 'none' }} />
             </label>
           </Group>
 
           <Group label="Display">
-            <button className={styles.btn} title="Toggle high contrast" onClick={() => document.body.classList.toggle('high-contrast')}>◑ High Contrast</button>
+            <button className={styles.btn} data-tooltip="Toggle high contrast" onClick={() => document.body.classList.toggle('high-contrast')}>◑ High Contrast</button>
           </Group>
 
         </>)}
+
 
       </div>
     </div>

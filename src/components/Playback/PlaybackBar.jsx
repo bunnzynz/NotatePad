@@ -1,5 +1,5 @@
 import { useScoreStore } from '../../store/scoreStore.js'
-import { play, stop, setVolume } from '../../audio/engine.js'
+import { play, stop, setVolume, startMetronome, stopMetronome } from '../../audio/engine.js'
 import styles from './PlaybackBar.module.css'
 
 export default function PlaybackBar() {
@@ -32,7 +32,12 @@ export default function PlaybackBar() {
   }
 
   function handleMetronome() {
-    setPlayback({ metronomeEnabled: !metronomeEnabled })
+    const newEnabled = !metronomeEnabled
+    setPlayback({ metronomeEnabled: newEnabled })
+    if (isPlaying) {
+      if (newEnabled) startMetronome(useScoreStore.getState().meta.timeSignature)
+      else stopMetronome()
+    }
   }
 
   return (
@@ -53,7 +58,7 @@ export default function PlaybackBar() {
             disabled={!fromHereId}
             title="Play from selected note or cursor"
           >
-            ▶ Here
+            ▶ From here
           </button>
         </>
       )}
@@ -97,6 +102,12 @@ export default function PlaybackBar() {
       >
         ♩ Click
       </button>
+
+      {/* eslint-disable-next-line no-undef */}
+      <span className={styles.buildStamp} title={`Built ${__BUILD_TIME__}`}>
+        {/* eslint-disable-next-line no-undef */}
+        {__COMMIT_HASH__}
+      </span>
 
     </div>
   )

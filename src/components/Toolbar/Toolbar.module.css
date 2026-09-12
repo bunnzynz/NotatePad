@@ -160,3 +160,95 @@
   margin: 0 3px;
   flex-shrink: 0;
 }
+
+/* ── Tooltips ─────────────────────────────────────────────── */
+
+.btn[data-tooltip] {
+  position: relative;
+}
+
+.btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-text);
+  color: var(--color-bg);
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-family: var(--font-ui);
+  font-weight: 400;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 200;
+  transition: opacity 0.12s ease;
+  transition-delay: 0s;
+}
+
+.btn[data-tooltip]:hover::after {
+  opacity: 1;
+  transition-delay: 0.6s;
+}
+
+/* ── Guide tab ────────────────────────────────────────────── */
+
+.guide {
+  display: flex;
+  gap: 0;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.guideGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 2px var(--space-3) var(--space-1);
+  border-right: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.guideGroup:last-child {
+  border-right: none;
+}
+
+.guideGroupTitle {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+
+.shortcutRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  padding: 1px 5px;
+  border: 1px solid var(--color-border);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  background: var(--color-bg);
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  color: var(--color-text);
+  flex-shrink: 0;
+}
+
+.shortcutLabel {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}

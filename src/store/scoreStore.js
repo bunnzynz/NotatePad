@@ -345,19 +345,21 @@ export const useScoreStore = create(
     })
   },
 
+  // Backspace — deletes the note at the cursor (selected note, or cursorNoteId if no selection).
   deleteSelectedNote: () =>
     set((s) => {
       const { selection, measures } = s
-      if (!selection.noteId) return s
+      const targetId = selection.noteId ?? selection.cursorNoteId
+      if (!targetId) return s
       const snap = snapshot(s)
       let prevNoteId = null
 
       const newMeasures = measures.map((m) => {
         if (m.id !== selection.measureId) return m
         const notes = m.notesByStaff[selection.staffId] ?? []
-        const idx = notes.findIndex((n) => n.id === selection.noteId)
+        const idx = notes.findIndex((n) => n.id === targetId)
         prevNoteId = notes[idx - 1]?.id ?? null
-        return { ...m, notesByStaff: { ...m.notesByStaff, [selection.staffId]: notes.filter((n) => n.id !== selection.noteId) } }
+        return { ...m, notesByStaff: { ...m.notesByStaff, [selection.staffId]: notes.filter((n) => n.id !== targetId) } }
       })
 
       return {
@@ -367,8 +369,7 @@ export const useScoreStore = create(
       }
     }),
 
-  // Delete the note that comes AFTER the currently selected note (for Delete key).
-  // If nothing is selected, deletes the first note in the active measure.
+  // Delete — deletes the note to the RIGHT of the cursor position.
   deleteNextNote: () =>
     set((s) => {
       const { selection, measures } = s
@@ -377,7 +378,8 @@ export const useScoreStore = create(
       const mIdx = measures.findIndex(m => m.id === selection.measureId)
       if (mIdx === -1) return s
       const notes = measures[mIdx].notesByStaff[selection.staffId] ?? []
-      const nIdx  = selection.noteId ? notes.findIndex(n => n.id === selection.noteId) : -1
+      const anchorId = selection.cursorNoteId
+      const nIdx = anchorId ? notes.findIndex(n => n.id === anchorId) : -1
       const targetNote = notes[nIdx + 1] ?? null
       if (!targetNote) return s
 
@@ -389,7 +391,7 @@ export const useScoreStore = create(
 
       return {
         measures: newMeasures,
-        selection,  // cursor stays on the same note
+        selection,
         history: { past: [...s.history.past, snap], future: [] },
       }
     }),

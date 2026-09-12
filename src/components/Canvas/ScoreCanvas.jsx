@@ -50,14 +50,17 @@ function measureCapacity([num, denom]) {
 
 // ── VexFlow helpers ───────────────────────────────────────────────────────────
 
-function vexKey(note) {
-  if (note.isRest) return 'b/4'
+const REST_KEY = { treble: 'b/4', bass: 'd/3', alto: 'c/4', tenor: 'a/3' }
+
+function vexKey(note, clef = 'treble') {
+  if (note.isRest) return REST_KEY[clef] ?? 'b/4'
   const acc = note.accidental === '#' ? '#' : note.accidental === 'b' ? 'b' : ''
   return `${note.pitch.toLowerCase()}${acc}/${note.octave}`
 }
 
 function vexDuration(note) {
   let d = note.duration || 'q'
+  if (note.dotted) d += 'd'
   if (note.isRest) d += 'r'
   return d
 }
@@ -178,41 +181,55 @@ export default function ScoreCanvas() {
 
         const firstStavePerStaff = []
 
-        // ── Staff rows ────────────────────────────────────────────────────
+        // ── Pre-pass: staff hit-test metadata (once per staff per system) ──
         staves.forEach((staff, sti) => {
-          const staveTopY  = sysY + sti * (STAVE_H + STAFF_GAP)
-          const topLineY   = staveTopY + VEX_HEADROOM
+          const staveTopY   = sysY + sti * (STAVE_H + STAFF_GAP)
+          const topLineY    = staveTopY + VEX_HEADROOM
           const bottomLineY = topLineY + STAVE_LINE_H
-
           staffInfo.current.push({
             staffId: staff.id, clef: staff.clef, pageIdx: pi, systemIdx: si,
             y: topLineY, bottom: bottomLineY,
           })
+        })
 
-          system.measures.forEach((ml, mi) => {
-            const staveX = sysX + ml.x
-            const stave  = new Stave(staveX, staveTopY, ml.width)
+        // ── Measures (outer) → staves (inner) for cross-staff alignment ───
+        system.measures.forEach((ml, mi) => {
+          const staveByStaff = {}   // staffId → Stave
+          const voiceData    = []   // { staff, stave, voice, staveNotes, notes, topLineY }
+
+          // Pass 1 — create & draw all staves for this measure
+          staves.forEach((staff, sti) => {
+            const staveTopY = sysY + sti * (STAVE_H + STAFF_GAP)
+            const staveX    = sysX + ml.x
+            const stave     = new Stave(staveX, staveTopY, ml.width)
 
             if (ml.isFirstInSystem) stave.addClef(staff.clef)
             if (ml.isFirstInSystem && meta.keySignature !== 'C') stave.addKeySignature(meta.keySignature)
             if (ml.isFirstInPiece)  stave.addTimeSignature(`${meta.timeSignature[0]}/${meta.timeSignature[1]}`)
 
             stave.setContext(ctx).draw()
+            staveByStaff[staff.id] = stave
             if (mi === 0) firstStavePerStaff.push(stave)
 
             if (!measureInfo.current[ml.measure.id]) measureInfo.current[ml.measure.id] = []
             measureInfo.current[ml.measure.id].push({ pageIdx: pi, staveX, staveW: ml.width, staveTopY, staffId: staff.id })
+          })
 
+          // Pass 2 — build voices for every staff that has notes
+          staves.forEach((staff, sti) => {
             const notes = ml.measure.notesByStaff[staff.id] ?? []
             if (notes.length === 0) return
+
+            const staveTopY = sysY + sti * (STAVE_H + STAFF_GAP)
+            const topLineY  = staveTopY + VEX_HEADROOM
 
             try {
               let beats = 0
               const staveNotes = notes.map((note) => {
                 const sn = new StaveNote({
-                  keys: [vexKey(note)],
+                  keys:     [vexKey(note, staff.clef)],
                   duration: vexDuration(note),
-                  clef: staff.clef,
+                  clef:     staff.clef,
                 })
                 if (note.dotted) Dot.buildAndAttach([sn], { all: true })
                 if (note.accidental && !note.isRest) sn.addModifier(new Accidental(note.accidental), 0)
@@ -234,10 +251,29 @@ export default function ScoreCanvas() {
                 .setMode(Voice.Mode.SOFT)
               voice.addTickables(staveNotes)
 
-              const noteAreaW = Math.max(20, (stave.getX() + stave.getWidth()) - stave.getNoteStartX() - 6)
-              new Formatter().joinVoices([voice]).format([voice], noteAreaW)
-              voice.draw(ctx, stave)
+              voiceData.push({ staff, stave: staveByStaff[staff.id], voice, staveNotes, notes, topLineY })
+            } catch (err) {
+              console.warn('ScoreCanvas voice build error', err)
+            }
+          })
 
+          // Pass 3 — format all voices together so notes align across staves
+          if (voiceData.length > 0) {
+            try {
+              const refStave  = voiceData[0].stave
+              const noteAreaW = Math.max(20, (refStave.getX() + refStave.getWidth()) - refStave.getNoteStartX() - 6)
+              const formatter = new Formatter()
+              voiceData.forEach(({ voice }) => formatter.joinVoices([voice]))
+              formatter.format(voiceData.map(d => d.voice), noteAreaW)
+            } catch (err) {
+              console.warn('ScoreCanvas format error', err)
+            }
+          }
+
+          // Pass 4 — draw voices and record note positions
+          voiceData.forEach(({ staff, stave, voice, staveNotes, notes, topLineY }) => {
+            try {
+              voice.draw(ctx, stave)
               staveNotes.forEach((sn, idx) => {
                 const nid = notes[idx]?.id
                 if (nid) {
@@ -250,7 +286,7 @@ export default function ScoreCanvas() {
                 }
               })
             } catch (err) {
-              console.warn('ScoreCanvas render error', err)
+              console.warn('ScoreCanvas draw error', err)
             }
           })
         })
@@ -305,7 +341,7 @@ export default function ScoreCanvas() {
         }
       })
     })
-  }, [layout, measures, staves, meta, selection])
+  }, [layout, measures, staves, meta, selection, playingNoteIds])
 
   // ── Shared stave/measure hit detection ────────────────────────────────────
 

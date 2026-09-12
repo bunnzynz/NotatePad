@@ -58,7 +58,12 @@ This is the **core differentiator** of NotatePad. The thing no other tool does p
 - [x] Measures can be added and removed
 - [x] Treble and bass clef support
 - [x] Score title editable inline in header
-- [ ] Key signature and time signature editing in toolbar `← Phase 1.1`
+- [x] Key signature and time signature editing in toolbar (Phase 1.1)
+- [x] Ribbon toolbar with tabs (Notes / Accidentals / Pitch / Rests)
+- [x] Natural (♮) accidental toggle
+- [x] Right-click note insert on stave
+- [x] Persistent cursor position after deselect
+- [x] Undo/redo covers key signature and time signature changes
 
 ### Done When
 A user can freestyle-write a passage of music with no interference from the app.
@@ -67,26 +72,44 @@ A user can freestyle-write a passage of music with no interference from the app.
 
 ---
 
-## Phase 2 — Playback
+## Phase 2 — Playback ✓ COMPLETE
 **Goal:** Hit play, hear the music.
 
 Playback gives the user immediate feedback on what they've written. It must work reliably and feel snappy.
 
 ### Deliverables
-- [ ] Tone.js integrated
-- [ ] "Play from beginning" button works
-- [ ] "Stop" button works
-- [ ] "Play from selection" — play from the currently selected note
-- [ ] Active note highlighted during playback
-- [ ] Tempo slider (BPM)
-- [ ] Metronome click option (on/off toggle)
-- [ ] Basic piano sound for all staves
-- [ ] Volume control (master)
+- [x] Tone.js integrated
+- [x] "Play from beginning" button works
+- [x] "Stop" button works
+- [x] "Play from here" — play from the currently selected note or cursor
+- [x] Active note highlighted in amber during playback
+- [x] Tempo input (BPM)
+- [x] Metronome click option (on/off toggle)
+- [x] Triangle synth sound for all staves
+- [x] Volume control (master slider)
+- [x] Multi-stave alignment (shared Formatter across staves per measure)
+- [x] Space bar to play/stop
+- [x] Build stamp in playback bar (commit hash + timestamp for deployment verification)
 - [ ] Loop toggle for a selected range `[stretch]`
 - [ ] Slow playback mode (reduce BPM without changing pitch) `[stretch]`
 
 ### Done When
 A user can write a passage and immediately hear it played back at a chosen tempo.
+
+---
+
+## Phase 2.5 — Notation Completeness
+**Goal:** Before saving or exporting, the notation itself needs to be expressive enough to write real music.
+
+Informed by real scores (Baker Street, etc.) — the things a user hits immediately when writing anything non-trivial.
+
+### Deliverables
+- [ ] **Chords** — multiple notes stacked on one beat (same stem); entry via letter key when a note is selected
+- [ ] **Ties** — duration-extending curve between two notes of identical pitch; distinct from slur
+- [ ] **Dotted rests** — rests with augmentation dot (currently only dotted notes work)
+
+### Done When
+A user can write a lead sheet or piano score that includes chords and tied notes without workarounds.
 
 ---
 
@@ -268,7 +291,7 @@ A user can share a link to their score and a colleague can open it and comment.
 **Build command:** `npm run build`
 **Output directory:** `dist`
 
-Deployment is automatic — every push to the `main` branch triggers a new production deploy via Vercel's GitHub integration. Preview deployments are generated automatically for every pull request.
+Deployment is via the Vercel CLI: run `npm run deploy` from the project root. This passes the current git commit hash to the build so the stamp in the app's playback bar always shows the deployed commit. The GitHub webhook integration was unreliable and has been replaced with this explicit deploy step.
 
 ### Deployment Phases
 

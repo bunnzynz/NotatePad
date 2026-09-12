@@ -35,30 +35,30 @@ function getSynth() {
 
 function getClick() {
   if (!metronomeClick) {
-    metronomeClick = new Tone.MembraneSynth({
-      pitchDecay: 0.008,
-      octaves: 2,
-      envelope: { attack: 0.001, decay: 0.08, sustain: 0, release: 0.1 },
+    metronomeClick = new Tone.Synth({
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.01 },
     }).toDestination()
-    metronomeClick.volume.value = -14
+    metronomeClick.volume.value = -2
   }
   return metronomeClick
 }
 
 // ── Metronome ─────────────────────────────────────────────────────────────────
 
-function stopMetronome() {
+export function stopMetronome() {
   if (metronomeId !== null) {
     Tone.Transport.clear(metronomeId)
     metronomeId = null
   }
 }
 
-function startMetronome(timeSig) {
+export function startMetronome(timeSig) {
   stopMetronome()
+  const click = getClick()  // create synth now, before callback fires
   const beatDuration = `${timeSig[1]}n`
   metronomeId = Tone.Transport.scheduleRepeat((time) => {
-    getClick().triggerAttackRelease('C1', '32n', time)
+    click.triggerAttackRelease('G5', '32n', time)
   }, beatDuration)
 }
 

@@ -17,6 +17,8 @@
 
 ## Input & Editing
 
+- `[Feature]` **Chords** — stack multiple notes on one stem at the same beat position. Discussed for Phase 3 (Baker Street reference). UI: select a note then press another letter to add to chord; or click an empty slot on an occupied beat. → ROADMAP Phase 3
+- `[Feature]` **Ties** — curved line connecting two notes of the same pitch across a beat or barline. Distinct from a slur (slur = legato phrasing, tie = duration extension). Discussed for Phase 3. → ROADMAP Phase 3
 - `[Feature]` **Chord entry mode** — press multiple letter keys together to build a chord on one stem
 - `[Feature]` **Tuplet entry** — triplets, quintuplets etc. (3 notes in the space of 2), with bracket notation
 - `[Feature]` **Grace notes** — small acciaccatura / appoggiatura notation

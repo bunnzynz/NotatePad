@@ -9,3 +9,6 @@ dist
 blue-background.png
 inspo-screenshots/
 test-screenshots/
+
+.vercel
+.env*

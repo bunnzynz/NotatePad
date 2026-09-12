@@ -1,6 +1,7 @@
-import { useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Toolbar from './components/Toolbar/Toolbar.jsx'
 import ScoreCanvas from './components/Canvas/ScoreCanvas.jsx'
+import GuidePage from './components/Guide/GuidePage.jsx'
 import PlaybackBar from './components/Playback/PlaybackBar.jsx'
 import { useKeyboard } from './hooks/useKeyboard.js'
 import { useScoreStore } from './store/scoreStore.js'
@@ -8,6 +9,7 @@ import styles from './App.module.css'
 
 export default function App() {
   useKeyboard()
+  const [activeTab, setActiveTab] = useState('notation')
 
   const title      = useScoreStore((s) => s.meta.title)
   const setMeta    = useScoreStore((s) => s.setMeta)
@@ -53,10 +55,10 @@ export default function App() {
         <span className={styles.tagline}>Music notation, minus the fuss.</span>
       </header>
 
-      <Toolbar />
+      <Toolbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <main id="main-content" className={styles.main}>
-        <ScoreCanvas />
+        {activeTab === 'guide' ? <GuidePage /> : <ScoreCanvas />}
       </main>
 
       <PlaybackBar />

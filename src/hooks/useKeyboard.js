@@ -59,10 +59,11 @@ export function useKeyboard() {
         return
       }
 
-      // Rest
+      // Rest — convert selected note if one is highlighted, otherwise insert
       if (lower === 'r' && !e.altKey) {
         e.preventDefault()
-        store.insertNote({ pitch: 'B', isRest: true })
+        if (store.selection.noteId) store.setRestDuration(store.inputState.duration)
+        else store.insertNote({ pitch: 'B', isRest: true })
         return
       }
 
@@ -93,10 +94,15 @@ export function useKeyboard() {
         e.preventDefault(); store.shiftNoteStep('down'); return
       }
 
-      // Delete: remove selected note, cursor moves to previous note
-      // Backspace: remove note to the LEFT of cursor (selected note stays selected)
+      // Backspace: remove note at cursor (selected note, or cursorNoteId if cursor-only)
+      // Delete: remove selected note if one is highlighted; otherwise remove note to the right of cursor
       if (key === 'Backspace') { e.preventDefault(); store.deleteSelectedNote(); return }
-      if (key === 'Delete')    { e.preventDefault(); store.deleteNextNote();      return }
+      if (key === 'Delete') {
+        e.preventDefault()
+        if (store.selection.noteId) store.deleteSelectedNote()
+        else store.deleteNextNote()
+        return
+      }
     }
 
     function onKeyDownCtrl(e) {
