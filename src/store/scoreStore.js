@@ -114,7 +114,7 @@ export const useScoreStore = create(
       const newMeasures = s.measures.map((m) => {
         if (m.id !== s.selection.measureId) return m
         const notes = m.notesByStaff[s.selection.staffId] ?? []
-        return { ...m, notesByStaff: { ...m.notesByStaff, [s.selection.staffId]: notes.map((n) => n.id === s.selection.noteId ? { ...n, duration } : n) } }
+        return { ...m, notesByStaff: { ...m.notesByStaff, [s.selection.staffId]: notes.map((n) => n.id === s.selection.noteId ? { ...n, duration, isRest: false } : n) } }
       })
       return { inputState: newInput, measures: newMeasures, history: { past: [...s.history.past, snap], future: [] } }
     }),
